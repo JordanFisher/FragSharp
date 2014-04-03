@@ -23,6 +23,11 @@ namespace TransformationCS
         }
 
 
+        public static void WriteIndented(this StringWriter writer, string indent)
+        {
+            writer.Write(indent);
+        }
+
         public static void WriteIndented(this StringWriter writer, string indent, string str)
         {
             writer.Write(indent);
@@ -46,10 +51,10 @@ namespace TransformationCS
             var Tree = SyntaxTree.ParseText(Code);
             var Root = Tree.GetRoot();
 
-            //Compilation compilation = Compilation.Create("MyCompilation",
-            //                                             syntaxTrees: new List<SyntaxTree>() { Tree },
-            //                                             references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
-            //model = compilation.GetSemanticModel(Tree);
+            Compilation compilation = Compilation.Create("MyCompilation",
+                                                         syntaxTrees: new List<SyntaxTree>() { Tree },
+                                                         references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
+            model = compilation.GetSemanticModel(Tree);
 
 
 
@@ -69,13 +74,40 @@ namespace TransformationCS
         {
             var output = new StringWriter();
 
-            CompileStatement(method.Body, output, "");
+            output.Write(FragmentShaderBegin);
+
+            CompileStatement(method.Body, output, TabSpace);
+
+            output.Write(FragmentShaderEnd);
+
+            output.Write(FileEnd);
 
             return output.ToString();
         }
 
+        const string _0 = "0/255.0", _1 = "1/255.0", _2 = "2/255.0", _3 = "3/255.0", _4 = "4/255.0", _5 = "5/255.0", _6 = "6/255.0", _7 = "7/255.0", _8 = "8/255.0", _9 = "9/255.0", _10 = "10/255.0", _11 = "11/255.0", _12 = "12/255.0";
+
         static Dictionary<string, string> TypeMap = new Dictionary<string, string>() {
             { "unit", "float4" },
+        };
+
+        static Dictionary<string, string> SymbolMap = new Dictionary<string,string>() {
+            { "output" , "Output.Color" },
+
+            { "RightOne" , CreateRelativeIndex( 1,  0) },
+            { "LeftOne"  , CreateRelativeIndex(-1,  0) },
+            { "UpOne"    , CreateRelativeIndex( 0,  1) },
+            { "DownOne"  , CreateRelativeIndex( 0, -1) },
+            { "Here"     , CreateRelativeIndex( 0,  0) },
+            
+            { "Dir.None"  , _0 },
+            { "Dir.Right" , _1 },
+            { "Dir.Up"    , _2 },
+            { "Dir.Left"  , _3 },
+            { "Dir.Down"  , _4 },
+
+            { "Change.Moved"  , _0 },
+            { "Change.Stayed" , _1 },
         };
 
         static Dictionary<string, string> MemberMap = new Dictionary<string, string>() {
@@ -83,13 +115,36 @@ namespace TransformationCS
             { "change",    "g" },
         };
 
-        static string TabSpace = "  ";
+        static readonly string TabSpace = "  ";
+
+        static readonly string FragmentShaderBegin = string.Format(@"
+PixelToFrame FragmentShader(VertexToPixel psin)
+{{
+{0}PixelToFrame Output = (PixelToFrame)0;
+", TabSpace);
+
+        static readonly string FragmentShaderEnd = string.Format(@"
+{0}return Output;
+}}
+", TabSpace);
+
+        static readonly string FileEnd = string.Format(@"
+technique Simplest
+{{
+{0}pass Pass0
+{0}{{
+{0}{0}VertexShader = compile VERTEX_SHADER GridComputationVertexShader();
+{0}{0}PixelShader = compile PIXEL_SHADER FragmentShader();
+{0}}}
+}}
+", TabSpace);
 
         static void CompileStatement(StatementSyntax statement, StringWriter output, string indent)
         {
             if      (statement is IfStatementSyntax)               CompileIfStatement(              (IfStatementSyntax)              statement, output, indent);
             else if (statement is LocalDeclarationStatementSyntax) CompileLocalDeclarationStatement((LocalDeclarationStatementSyntax)statement, output, indent);
             else if (statement is BlockSyntax)                     CompileBlock(                    (BlockSyntax)                    statement, output, indent);
+            else if (statement is ExpressionStatementSyntax)       CompileExpressionStatement(      (ExpressionStatementSyntax)      statement, output, indent);
             else if (statement is StatementSyntax)                 output.WriteLine("{0}statement {1}", indent, statement.GetType());
         }
 
@@ -122,7 +177,16 @@ namespace TransformationCS
 
         static void CompileVariableDeclaration(VariableDeclarationSyntax declaration, StringWriter output, string indent)
         {
-            output.WriteIndented(indent, declaration.Type.ToString());
+            string type = declaration.Type.ToString();
+
+            if (TypeMap.ContainsKey(type))
+            {
+                output.WriteIndented(indent, TypeMap[type]);
+            }
+            else
+            {
+                output.WriteIndented(indent, type);
+            }
 
             var last = declaration.Variables.Last();
             foreach (var variable in declaration.Variables)
@@ -149,13 +213,39 @@ namespace TransformationCS
 
         static void CompileElementAccessExpression(ElementAccessExpressionSyntax expression, StringWriter output)
         {
+            //var info = model.GetSymbolInfo(expression.ArgumentList.Arguments[0].Expression);
+            //info.Symbol
+
             output.Write("tex2D(");
             CompileExpression(expression.Expression, output);
             output.Write(", ");
-            output.Write("PSIn.TexCoords + float2(({0}+.5) * dx, ({1}+.5) * dy)", -1, 1);
+            output.Write("PSIn.TexCoords + ");
+            CompileExpression(expression.ArgumentList.Arguments[0].Expression, output);
             output.Write(")");
+        }
 
-            //expression.ArgumentList
+        static void CompileInvocationExpression(InvocationExpressionSyntax expression, StringWriter output)
+        {
+            CompileExpression(expression.Expression, output);
+            output.Write("(");
+            CompileArgumentList(expression.ArgumentList, output);
+            output.Write(")");
+        }
+
+        static void CompileArgumentList(ArgumentListSyntax list, StringWriter output)
+        {
+            var last = list.Arguments.Last();
+            foreach (var argument in list.Arguments)
+            {
+                CompileExpression(argument.Expression, output);
+                output.Write(argument == last ? "" : ", ");
+            }
+
+        }
+
+        static string CreateRelativeIndex(int i, int j)
+        {
+            return string.Format("float2(({0}+.5) * dx, ({1}+.5) * dy)", i, j);
         }
 
         static void CompileBlock(BlockSyntax block, StringWriter output, string indent)
@@ -166,12 +256,20 @@ namespace TransformationCS
             }
         }
 
+        static void CompileExpressionStatement(ExpressionStatementSyntax statement, StringWriter output, string indent)
+        {
+            output.WriteIndented(indent);
+            CompileExpression(statement.Expression, output);
+            output.Write(";\n");
+        }
+
         static void CompileExpression(ExpressionSyntax expression, StringWriter output)
         {
             if      (expression is BinaryExpressionSyntax)        CompileBinaryExpression(       (BinaryExpressionSyntax)       expression, output);
             else if (expression is MemberAccessExpressionSyntax)  CompileMemberAccessExpression( (MemberAccessExpressionSyntax) expression, output);
             else if (expression is IdentifierNameSyntax)          CompileIdentifierName(         (IdentifierNameSyntax)         expression, output);
             else if (expression is ElementAccessExpressionSyntax) CompileElementAccessExpression((ElementAccessExpressionSyntax)expression, output);
+            else if (expression is InvocationExpressionSyntax)    CompileInvocationExpression(   (InvocationExpressionSyntax)   expression, output);
             else output.Write("expression " + expression.GetType().Name);
         }
 
@@ -184,24 +282,41 @@ namespace TransformationCS
 
         static void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression, StringWriter output)
         {
-            CompileExpression(expression.Expression, output);
-            output.Write(".");
-
-            try
+            string member = expression.Name.Identifier.ValueText;
+            
+            string access = expression.Expression + "." + member;
+            if (SymbolMap.ContainsKey(access))
             {
-                var member = expression.Name.Identifier.ValueText;
+                output.Write(SymbolMap[access]);
+                return;
+            }
+
+            if (MemberMap.ContainsKey(member))
+            {
+                CompileExpression(expression.Expression, output);
+                output.Write(".");
+
                 var mapped = MemberMap[member];
                 output.Write(mapped);
             }
-            catch
+            else
             {
-                output.Write("ERROR {0}", expression.Name);
+                output.Write("ERROR(MemberAccess: {0})", expression);
             }
         }
 
         static void CompileIdentifierName(IdentifierNameSyntax syntax, StringWriter output)
         {
-            output.Write(syntax.Identifier.ValueText);
+            string identifier = syntax.Identifier.ValueText;
+
+            if (SymbolMap.ContainsKey(identifier))
+            {
+                output.Write(SymbolMap[identifier]);
+            }
+            else
+            {
+                output.Write(identifier);
+            }
         }
 
 
@@ -291,11 +406,32 @@ namespace TransformationCS
         static string Code = @"
 public class GridComputation
 {
-    static RelativeIndex RightOne = new RelativeIndex( 1 ,  0 ),
-                            LeftOne  = new RelativeIndex(-1 ,  0 ),
-                            UpOne    = new RelativeIndex( 0 ,  1 ),
-                            DownOne  = new RelativeIndex( 0 , -1 ),
-                            Here     = new RelativeIndex( 0 ,  0 );
+        protected const float _0 = 0 / 255f, _1 = 1 / 255f, _2 = 2 / 255f, _3 = 3 / 255f, _4 = 4 / 255f, _5 = 5 / 255f, _6 = 6 / 255f, _7 = 7 / 255f, _8 = 8 / 255f, _9 = 9 / 255f, _10 = 10 / 255f, _11 = 11 / 255f, _12 = 12 / 255f;
+
+        protected static class Dir
+        {
+            public const float
+                None  = _0, 
+                Right = _1,
+                Up    = _2,
+                Left  = _3,
+                Down  = _4;
+        }
+
+        protected static class Change
+        {
+            public const float
+                Moved  = _0,
+                Stayed = _1;
+        }
+
+        [Preamble]
+        protected static readonly RelativeIndex
+            RightOne = new RelativeIndex( 1,  0),
+            LeftOne  = new RelativeIndex(-1,  0),
+            UpOne    = new RelativeIndex( 0,  1),
+            DownOne  = new RelativeIndex( 0, -1),
+            Here     = new RelativeIndex( 0,  0);
 
     protected static void Run(UnitField Output)
     {
@@ -317,7 +453,7 @@ public class GridComputation
     {
 	    // Check four directions to see if something is incoming
 	    unit right = Current[RightOne];
-	    if (right.direction == Dir.Left)  output = right;
+	    if (right.direction == Dir. Left)  output = right;
 
 	    unit up = Current[UpOne];
 	    if (up.direction    == Dir.Down)  output = up;
@@ -336,6 +472,7 @@ output.change = Change.Moved;
 	    unit here = Current[Here];
 	    if (IsValid(here.direction))
 	    {
+            IsValid(here.direction, here.change);
 		    output = here;
 		    output.change = Change.Stayed;
 	    }
