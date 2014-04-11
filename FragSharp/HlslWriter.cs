@@ -10,8 +10,8 @@ namespace FragSharp
 {
     internal class HlslWriter : CStyleWriter
     {
-        public HlslWriter(SemanticModel model, Compilation compilation)
-            : base(model, compilation)
+        public HlslWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
+            : base(models, compilation)
         {
         }
 
@@ -20,97 +20,33 @@ namespace FragSharp
         {
         }
 
-        const string _0 = "0/255.0", _1 = "1/255.0", _2 = "2/255.0", _3 = "3/255.0", _4 = "4/255.0", _5 = "5/255.0", _6 = "6/255.0", _7 = "7/255.0", _8 = "8/255.0", _9 = "9/255.0", _10 = "10/255.0", _11 = "11/255.0", _12 = "12/255.0";
-
-        Dictionary<string, string> SymbolMap = new Dictionary<string, string>() {
-            { "unit" , "float4" },
-
-            { "vec2" , "float2" },
-            { "vec3" , "float3" },
-            { "vec4" , "float4" },
-
-            { "RelativeIndex" , "float2" },
-
-            { "cos" , "cos" },
-            { "sin" , "sin" },
-
-            { "unit.Nothing" , "float4(0,0,0,0)" },
-
-            { "RightOne" , CreateRelativeIndex( 1,  0) },
-            { "LeftOne"  , CreateRelativeIndex(-1,  0) },
-            { "UpOne"    , CreateRelativeIndex( 0,  1) },
-            { "DownOne"  , CreateRelativeIndex( 0, -1) },
-            { "Here"     , CreateRelativeIndex( 0,  0) },
-            
-            { "Dir.None"  , _0 },
-            { "Dir.Right" , _1 },
-            { "Dir.Up"    , _2 },
-            { "Dir.Left"  , _3 },
-            { "Dir.Down"  , _4 },
-
-            { "TurnRight" , "-1/255.0" },
-            { "TurnLeft"  ,  "1/255.0" },
-
-
-            { "Change.Moved"  , _0 },
-            { "Change.Stayed" , _1 },
-        };
-
-        Dictionary<string, string> MemberMap = new Dictionary<string, string>() {
-            { "x", "x" },
-            { "y", "y" },
-
-            { "xy", "xy" },
-            
-            { "xyz", "xyz" },
-
-            { "r", "r" },
-            { "g", "g" },
-            { "b", "b" },
-            { "a", "a" },
-
-            { "direction", "r" },
-            { "change",    "g" },
-        };
+        //const string _0 = "0/255.0", _1 = "1/255.0", _2 = "2/255.0", _3 = "3/255.0", _4 = "4/255.0", _5 = "5/255.0", _6 = "6/255.0", _7 = "7/255.0", _8 = "8/255.0", _9 = "9/255.0", _10 = "10/255.0", _11 = "11/255.0", _12 = "12/255.0";
 
         override protected void CompileType(TypeSyntax type)
         {
-            string name = type.ToString();
+            var info = GetModel(type).GetSymbolInfo(type);
 
-            if (SymbolMap.ContainsKey(name))
+            var symbol = info.Symbol;
+            if (symbol != null && TranslationLookup.SymbolMap.ContainsKey(symbol))
             {
-                Write(SymbolMap[name]);
+                Write(TranslationLookup.SymbolMap[symbol].Translation);
             }
             else
             {
-                Write(name);
+                Write("ERROR(Unsupported type : {0})", type);
             }
         }
 
-        override protected void CompileLiteralExpression(LiteralExpressionSyntax literal)
+        override protected void CompileLiteral(object value)
         {
-            var get = model.GetConstantValue(literal);
-
-            if (get.HasValue)
-            {
-                var val = get.Value;
-
-                if (val is int) Write(val);
-                else if (val is float) Write(val);
-                else if (val is double) Write(val);
-                else Write("ERROR(Unsupported Literal : {0})", val);
-            }
-            else
-            {
-                Write("ERROR(Improper Literal : {0})", literal);
-            }
+            if      (value is int   ) Write(value);
+            else if (value is float ) Write(value);
+            else if (value is double) Write(value);
+            else Write("ERROR(Unsupported Literal : {0})", value);
         }
 
         override protected void CompileElementAccessExpression(ElementAccessExpressionSyntax expression)
         {
-            //var info = model.GetSymbolInfo(expression.ArgumentList.Arguments[0].Expression);
-            //info.Symbol
-
             Write("tex2D(");
             CompileExpression(expression.Expression);
             Write(",{0}", Space);
@@ -121,69 +57,81 @@ namespace FragSharp
 
         override protected void CompileInvocationExpression(InvocationExpressionSyntax expression)
         {
-            if (SymbolMap.ContainsKey(expression.Expression.ToString()))
+            var info = GetModel(expression.Expression).GetSymbolInfo(expression.Expression);
+
+            var symbol = info.Symbol;
+            if (symbol != null)
             {
-                Write(SymbolMap[expression.Expression.ToString()]);
+                // If the function has a tranlsation, use that tranlsation
+                if (TranslationLookup.SymbolMap.ContainsKey(symbol))
+                {
+                    var translation_info = TranslationLookup.SymbolMap[symbol];
+                    Write(translation_info.Translation);
+                }
+                else
+                {
+                    // Otherwise compile the function and note that we are using it.
+                    var writer = new HlslWriter(this);
+                    writer.CompileMethod(info.Symbol);
+
+                    ReferencedMethods.AddUnique(SymbolCompilation[info.Symbol].ReferencedMethods);
+                    ReferencedMethods.AddUnique(info.Symbol);
+
+                    CompileExpression(expression.Expression);
+                }
+
+                Write("(");
+                CompileArgumentList(expression.ArgumentList);
+                Write(")");
             }
             else
             {
-                var info = model.GetSymbolInfo(expression.Expression);
-
-                var writer = new HlslWriter(this);
-                writer.CompileMethod(info.Symbol);
-
-                ReferencedMethods.AddRange(SymbolCompilation[info.Symbol].ReferencedMethods);
-                ReferencedMethods.Add(info.Symbol);
-
-                CompileExpression(expression.Expression);
-            }
-
-            Write("(");
-            CompileArgumentList(expression.ArgumentList);
-            Write(")");
-        }
-
-        protected static string CreateRelativeIndex(int i, int j)
-        {
-            return string.Format("float2({0},{1})", i, j);
-        }
-
-        override protected void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression)
-        {
-            string member = expression.Name.Identifier.ValueText;
-
-            string access = expression.Expression + "." + member;
-            if (SymbolMap.ContainsKey(access))
-            {
-                Write(SymbolMap[access]);
-                return;
-            }
-
-            if (MemberMap.ContainsKey(member))
-            {
-                CompileExpression(expression.Expression);
-                Write(".");
-
-                var mapped = MemberMap[member];
-                Write(mapped);
-            }
-            else
-            {
-                Write("ERROR(MemberAccess: {0})", expression);
+                Write("ERROR(Unknown function : {0})", expression);
             }
         }
 
         override protected void CompileIdentifierName(IdentifierNameSyntax syntax)
         {
-            string identifier = syntax.Identifier.ValueText;
+            var info = GetModel(syntax).GetSymbolInfo(syntax);
 
-            if (SymbolMap.ContainsKey(identifier))
+            var symbol = info.Symbol;
+            if (symbol != null)
             {
-                Write(SymbolMap[identifier]);
-            }
-            else
-            {
-                Write(identifier);
+                if (symbol is LocalSymbol)
+                {
+                    Write(syntax.Identifier.ValueText);
+                }
+                else if (symbol is ParameterSymbol)
+                {
+                    Write(syntax.Identifier.ValueText);
+                }
+                else if (TranslationLookup.SymbolMap.ContainsKey(symbol))
+                {
+                    var translation_info = TranslationLookup.SymbolMap[symbol];
+
+                    //if (translation_info.TranslationType == TranslationType.ReplaceMember)
+                    //{
+                    //    CompileExpression(expression.Expression);
+                    //    Write(".");
+
+                    //    Write(translation_info.Translation);
+                    //}
+                    //else if (translation_info.TranslationType == TranslationType.ReplaceExpression)
+                    {
+                        Write(translation_info.Translation);
+                    }
+                }
+                else
+                {
+                    if (ReferencedMethods.Contains(symbol))
+                    {
+                        Write(symbol.Name);
+                    }
+                    else
+                    {
+                        Write("ERROR(Non-local symbol : {0})", syntax);
+                    }
+                }
             }
         }
     }

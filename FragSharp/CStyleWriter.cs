@@ -27,8 +27,8 @@ namespace FragSharp
 
     internal abstract class CStyleWriter : AbstractCodeWriter
     {
-        public CStyleWriter(SemanticModel model, Compilation compilation)
-            : base(model, compilation)
+        public CStyleWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
+            : base(models, compilation)
         {
         }
 
@@ -143,6 +143,19 @@ namespace FragSharp
             Write("(");
             CompileArgumentList(creation.ArgumentList);
             Write(")");
+        }
+
+        protected override void CompilePrefixUnaryExpression(PrefixUnaryExpressionSyntax expression)
+        {
+            if (expression.OperatorToken.ValueText == "-")
+            {
+                Write(expression.OperatorToken);
+                CompileExpression(expression.Operand);
+            }
+            else
+            {
+                Write("ERROR(Unsupported unary expression: {0})", expression);
+            }
         }
 
         override protected void CompileVariableDeclaration(VariableDeclarationSyntax declaration)

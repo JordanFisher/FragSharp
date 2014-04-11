@@ -10,9 +10,9 @@ namespace FragSharp
 {
     internal abstract class AbstractCodeWriter
     {
-        public AbstractCodeWriter(SemanticModel model, Compilation compilation)
+        public AbstractCodeWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
         {
-            this.model             = model;
+            this.models            = models;
             this.compilation       = compilation;
 
             this.SymbolCompilation = new Dictionary<Symbol, CompiledMethod>();
@@ -20,13 +20,18 @@ namespace FragSharp
 
         public AbstractCodeWriter(AbstractCodeWriter writer)
         {
-            this.model             = writer.model;
+            this.models            = writer.models;
             this.compilation       = writer.compilation;
             this.SymbolCompilation = writer.SymbolCompilation;
         }
 
-        protected SemanticModel model;
+        protected Dictionary<SyntaxTree, SemanticModel> models;
         protected Compilation compilation;
+
+        protected SemanticModel GetModel(ExpressionSyntax expression)
+        {
+            return models[expression.SyntaxTree];
+        }
 
         protected struct CompiledMethod
         {
@@ -39,6 +44,64 @@ namespace FragSharp
                 this.ReferencedMethods = ReferencedMethods;
             }
         }
+
+        abstract protected void CompileLiteral(object literal);
+        virtual protected void CompileLiteralExpression(LiteralExpressionSyntax literal)
+        {
+            var get = GetModel(literal).GetConstantValue(literal);
+
+            if (get.HasValue)
+            {
+                CompileLiteral(get.Value);
+            }
+            else
+            {
+                Write("ERROR(Improper Literal : {0})", literal);
+            }
+        }
+
+        //protected abstract string GetTranslation(Symbol symbol)
+        //{
+        //}
+
+        protected void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression)
+        {
+            var member_info = GetModel(expression.Name).GetSymbolInfo(expression.Name);
+            var member = member_info.Symbol;
+
+            // If this member has a translation
+            if (TranslationLookup.SymbolMap.ContainsKey(member))
+            {
+                var translation_info = TranslationLookup.SymbolMap[member];
+
+                if (translation_info.TranslationType == TranslationType.ReplaceMember)
+                {
+                    CompileExpression(expression.Expression);
+                    Write(".");
+
+                    Write(translation_info.Translation);
+                }
+                else if (translation_info.TranslationType == TranslationType.ReplaceExpression)
+                {
+                    Write(translation_info.Translation);
+                }
+            }
+            else
+            {
+                var const_val = GetModel(expression.Name).GetConstantValue(expression.Name);
+                if (const_val.HasValue)
+                {
+                    CompileLiteral(const_val.Value);
+                }
+                else
+                {
+                    Write("ERROR(MemberAccess: {0})", expression);
+                }
+            }
+        }
+
+
+
 
         protected Dictionary<Symbol, CompiledMethod> SymbolCompilation;
 
@@ -210,7 +273,7 @@ namespace FragSharp
         abstract protected void CompileExpressionStatement(ExpressionStatementSyntax statement);
         abstract protected void CompileReturnStatement(ReturnStatementSyntax statement);
 
-        virtual protected void CompileExpression(ExpressionSyntax expression)
+        virtual public void CompileExpression(ExpressionSyntax expression)
         {
             if      (expression is BinaryExpressionSyntax)         CompileBinaryExpression(        (BinaryExpressionSyntax)        expression);
             else if (expression is MemberAccessExpressionSyntax)   CompileMemberAccessExpression(  (MemberAccessExpressionSyntax)  expression);
@@ -223,20 +286,20 @@ namespace FragSharp
             else if (expression is LiteralExpressionSyntax)        CompileLiteralExpression(       (LiteralExpressionSyntax)       expression);
             else if (expression is ConditionalExpressionSyntax)    CompileConditionalExpression(   (ConditionalExpressionSyntax)   expression);
             else if (expression is ObjectCreationExpressionSyntax) CompileObjectCreationExpression((ObjectCreationExpressionSyntax)expression);
+            else if (expression is PrefixUnaryExpressionSyntax)    CompilePrefixUnaryExpression(   (PrefixUnaryExpressionSyntax)   expression);
             else Write("expression " + expression.GetType().Name);
         }
 
         abstract protected void CompileBinaryExpression(BinaryExpressionSyntax expression);
-        abstract protected void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression);
         abstract protected void CompileIdentifierName(IdentifierNameSyntax syntax);
         abstract protected void CompileElementAccessExpression(ElementAccessExpressionSyntax expression);
         abstract protected void CompileInvocationExpression(InvocationExpressionSyntax expression);
         abstract protected void CompileCastExpression(CastExpressionSyntax expression);
         abstract protected void CompileParenthesizedExpression(ParenthesizedExpressionSyntax expression);
         abstract protected void CompileType(TypeSyntax type);
-        abstract protected void CompileLiteralExpression(LiteralExpressionSyntax literal);
         abstract protected void CompileConditionalExpression(ConditionalExpressionSyntax conditional);
         abstract protected void CompileObjectCreationExpression(ObjectCreationExpressionSyntax creation);
+        abstract protected void CompilePrefixUnaryExpression(PrefixUnaryExpressionSyntax expression);
 
         abstract protected void CompileVariableDeclaration(VariableDeclarationSyntax declaration);
         abstract protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator);
