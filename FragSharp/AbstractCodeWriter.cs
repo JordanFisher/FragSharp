@@ -158,7 +158,7 @@ namespace FragSharp
 
         protected void ClearString()
         {
-            writer.Flush();
+            writer = new StringWriter();
         }
 
         protected void Write(object obj)

@@ -266,36 +266,12 @@ namespace FragSharp
                 GetFragmentShaderDecleration();
             }
 
-            public string Compile()
+            public ShaderCompilation Compile()
             {
                 if (VertexShaderDecleration == null || FragmentShaderDecleration == null) return null;
 
-                //HlslShaderWriter vertex_writer, fragment_writer;
-
-                //// Compile the vertex shader if not compiled already
-                //if (VertexCompilations.ContainsKey(VertexShaderDecleration))
-                //{
-                //    vertex_writer = VertexCompilations[VertexShaderDecleration];
-                //}
-                //else
-                //{
-                //    vertex_writer = new HlslShaderWriter(Models, SourceCompilation);
-                //    vertex_writer.CompileVertextMethod(VertexShaderDecleration);   
-                //}
-
-                //// Compile the Fragment shader if not compiled already
-                //if (FragmentCompilations.ContainsKey(FragmentShaderDecleration))
-                //{
-                //    fragment_writer = FragmentCompilations[FragmentShaderDecleration];
-                //}
-                //else
-                //{
-                //    fragment_writer = new HlslShaderWriter(Models, SourceCompilation);
-                //    fragment_writer.CompileFragmenttMethod(FragmentShaderDecleration);
-                //}
-
                 HlslShaderWriter writer = new HlslShaderWriter(Models, SourceCompilation);
-                string output = writer.CompileShader(VertexShaderDecleration, FragmentShaderDecleration);
+                var output = writer.CompileShader(Symbol, VertexShaderDecleration, FragmentShaderDecleration);
 
                 return output;
             }
@@ -472,6 +448,9 @@ using Microsoft.Xna.Framework.Graphics;
             }
 
             // Compile shaders
+            StringWriter BoilerWriter = new StringWriter();
+            BoilerWriter.WriteLine(HlslShaderWriter.BoilerFileBegin);
+            BoilerWriter.WriteLine();
             foreach (var shader in ShaderClass.Shaders)
             {
                 if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
@@ -480,8 +459,12 @@ using Microsoft.Xna.Framework.Graphics;
 
                 var filename = Path.Combine(ShaderCompileDir, shader.Symbol.Name) + ".fx";
                 
-                File.WriteAllText(filename, compiled);
+                File.WriteAllText(filename, compiled.Code);
+                
+                BoilerWriter.Write(compiled.Boilerplate);
+                BoilerWriter.WriteLine();
             }
+            File.WriteAllText(Path.Combine(SrcRoot, BoilerplateFileName), BoilerWriter.ToString());
         }
 
         private static void CompileUserCode()

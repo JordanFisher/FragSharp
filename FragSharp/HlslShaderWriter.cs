@@ -8,6 +8,12 @@ using Roslyn.Compilers.CSharp;
 
 namespace FragSharp
 {
+    public class ShaderCompilation
+    {
+        public string Code, Boilerplate;
+        public ShaderCompilation(string Code, string Boilerplate) { this.Code = Code; this.Boilerplate = Boilerplate; }
+    }
+
     internal class HlslShaderWriter : HlslWriter
     {
         public HlslShaderWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
@@ -20,7 +26,7 @@ namespace FragSharp
         enum Compiling { None, VertexMethod, FragmentMethod };
         Compiling CurrentMethod = Compiling.None;
 
-        public string CompileShader(MethodDeclarationSyntax vertex_method, MethodDeclarationSyntax fragment_method)
+        public ShaderCompilation CompileShader(NamedTypeSymbol Symbol, MethodDeclarationSyntax vertex_method, MethodDeclarationSyntax fragment_method)
         {
             ClearString();
             
@@ -78,7 +84,110 @@ namespace FragSharp
             string fragment = GetString();
             fragment = SpecialFormat(fragment, methods);
 
-            return fragment;
+            // Create the C# boilerplate that provides links
+            string boilerplate = CreateBoilerplate(Symbol);
+
+            return new ShaderCompilation(fragment, boilerplate);
+        }
+
+        string CreateBoilerplate(NamedTypeSymbol symbol)
+        {
+            ClearString();
+
+            WriteLine("namespace {0}", symbol.ContainingNamespace);
+            WriteLine("{");
+
+            var PrevIndent1 = Indent();
+
+            WriteBoilerplateClass(symbol);
+
+            RestoreIndent(PrevIndent1);
+
+            WriteLine("}");
+            WriteLine();
+
+            return GetString();
+        }
+
+        void WriteBoilerplateClass(NamedTypeSymbol symbol)
+        {
+            WriteLine("public partial class {0}", symbol.Name);
+            WriteLine("{");
+
+            var PrevIndent = Indent();
+
+            WriteLine("public static Effect CompiledEffect;");
+            WriteLine();
+
+            WriteBoilerplateUseFuncSignature(true);
+            WriteBoilerplateUseFuncOverload();
+            WriteBoilerplateUseFuncSignature(false);
+            WriteBoilerplateUseFunc();
+
+            RestoreIndent(PrevIndent);
+
+            WriteLine("}");    
+        }
+
+        void WriteBoilerplateUseFuncSignature(bool WithOutputParam)
+        {
+            BeginLine("public static void Use(");
+
+            foreach (var param in Params)
+            {
+                Write("{0} {1}", param.TypeName, param.Name);
+
+                if (WithOutputParam || param != Params.Last())
+                {
+                    Write(",{0}", Space);
+                }
+            }
+
+            if (WithOutputParam)
+            {
+                Write("RenderTarget2D Output");
+            }
+
+            EndLine(")");
+        }
+
+        void WriteBoilerplateUseFuncOverload()
+        {
+            WriteLine("{");
+            var PrevIndent = Indent();
+
+            BeginLine("Use(");
+
+            foreach (var param in Params)
+            {
+                Write(param.Name);
+
+                if (param != Params.Last())
+                {
+                    Write(",{0}", Space);
+                }
+            }
+
+            EndLine(");");
+
+            RestoreIndent(PrevIndent);
+            WriteLine("}");    
+        }
+
+        void WriteBoilerplateUseFunc()
+        {
+            WriteLine("{");
+            var PrevIndent = Indent();
+
+            foreach (var param in Params)
+            {
+                WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({0}));", param.Name);
+            }
+
+            WriteLine("CompiledEffect.CurrentTechnique.Passes[0].Apply();");
+
+            RestoreIndent(PrevIndent);
+            WriteLine("}");
         }
 
         override protected void CompileReturnStatement(ReturnStatementSyntax statement)
@@ -102,6 +211,25 @@ namespace FragSharp
             return string.Format(s, Tab, LineBreak);
         }
 
+
+        class Param
+        {
+            public enum ParamType { VertexParam, FragmentParam };
+
+            public string TypeName, Name, MappedName;
+            public ParamType Type;
+
+            public Param(string TypeName, string Name, string MappedName, ParamType Type)
+            {
+                this.TypeName = TypeName;
+                this.Name = Name;
+                this.MappedName = MappedName;
+                this.Type = Type;
+            }
+        }
+
+        List<Param> Params = new List<Param>();
+
         void CompileVertexSignature(MethodDeclarationSyntax method)
         {
             var ParameterList = method.ParameterList.Parameters;
@@ -115,11 +243,6 @@ namespace FragSharp
 
                 CompileVertexParameter(parameter);
                 EndLine();
-
-                //if (parameter != last)
-                //{
-                //    WriteLine();
-                //}
             }
         }
 
@@ -159,14 +282,20 @@ namespace FragSharp
                 {
                     if (translation_info.Translation == "sampler")
                     {
-                        // Specialize
+                        Write("ERROR(Samplers not suported in vertex shaders : {0})", parameter);
                     }
                     else
                     {
-                        Write(translation_info.Translation);
+                        string type = translation_info.Translation;
+                        string name = parameter.Identifier.ValueText;
+                        string mapped_name = VertexShaderParameterPrefix + name;
+
+                        Write(type);
                         Write(" ");
-                        Write(VertexShaderParameterPrefix + parameter.Identifier);
+                        Write(mapped_name);
                         Write(";");
+
+                        Params.Add(new Param(parameter.Type.ToString(), name, mapped_name, Param.ParamType.VertexParam));
                     }
                 }
             }
@@ -188,10 +317,16 @@ namespace FragSharp
                     }
                     else
                     {
-                        Write(translation_info.Translation);
+                        string type = translation_info.Translation;
+                        string name = parameter.Identifier.ValueText;
+                        string mapped_name = FragmentShaderParameterPrefix + name;
+
+                        Write(type);
                         Write(" ");
-                        Write(FragmentShaderParameterPrefix + parameter.Identifier);
+                        Write(name);
                         Write(";");
+
+                        Params.Add(new Param(parameter.Type.ToString(), name, mapped_name, Param.ParamType.FragmentParam));
                     }
                 }
             }
@@ -201,7 +336,10 @@ namespace FragSharp
         {
             SamplerNumber++;
 
-            Write(SamplerTemplate, Tab, SamplerNumber, parameter.Identifier.ValueText);
+            string name = parameter.Identifier.ValueText;
+            Write(SamplerTemplate, Tab, SamplerNumber, name);
+
+            Params.Add(new Param("Texture2D", name, name, Param.ParamType.FragmentParam));
         }
 
 const string SamplerTemplate =
@@ -267,5 +405,17 @@ technique Simplest
 {0}}}
 }}";
 
+public const string BoilerFileBegin =
+@"// This file was auto-generated by FragSharp. It will be regenerated on the next compilation.
+// Manual changes made will not persist and may cause incorrect behavior between compilations.
+
+using System;
+using System.Collections.Generic;
+
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
+
+using FragSharpFramework;";
     }
 }
