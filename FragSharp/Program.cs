@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using Roslyn.Compilers;
 using Roslyn.Compilers.CSharp;
+
+using FragSharp.Build;
 
 namespace FragSharp
 {
@@ -211,6 +214,7 @@ namespace FragSharp
         static readonly string ProjRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim";
         static readonly string SrcRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim";
         static readonly string ShaderCompileDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__GeneratedShaders";
+        static readonly string ShaderBuildDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/bin/x86/Debug/Content/FragSharpShaders";
 
         const string ExtensionFileName = "__ExtensionBoilerplate.cs";
         const string BoilerplateFileName = "__ShaderBoilerplate.cs";
@@ -218,6 +222,8 @@ namespace FragSharp
         class ShaderClass
         {
             public static List<ShaderClass> Shaders = new List<ShaderClass>();
+
+            public string TargetFile;
 
             static Dictionary<NamedTypeSymbol, ShaderClass> SymbolLookup = new Dictionary<NamedTypeSymbol, ShaderClass>();
             //static Dictionary<MethodDeclarationSyntax, HlslShaderWriter>
@@ -447,7 +453,7 @@ using Microsoft.Xna.Framework.Graphics;
                 File.Delete(file);
             }
 
-            // Compile shaders
+            // Compile shaders from C# to target language
             StringWriter BoilerWriter = new StringWriter();
             BoilerWriter.WriteLine(HlslShaderWriter.BoilerFileBegin);
             BoilerWriter.WriteLine();
@@ -457,17 +463,52 @@ using Microsoft.Xna.Framework.Graphics;
 
                 var compiled = shader.Compile();
 
-                var filename = Path.Combine(ShaderCompileDir, shader.Symbol.Name) + ".fx";
-                
-                File.WriteAllText(filename, compiled.Code);
+                shader.TargetFile = Path.Combine(ShaderCompileDir, shader.Symbol.Name) + ".fx";
+
+                File.WriteAllText(shader.TargetFile, compiled.Code);
                 
                 BoilerWriter.Write(compiled.Boilerplate);
                 BoilerWriter.WriteLine();
             }
             File.WriteAllText(Path.Combine(SrcRoot, BoilerplateFileName), BoilerWriter.ToString());
+
+            // Compile target shaders
+            BuildGeneratedShaders();
         }
 
-        private static void CompileUserCode()
+        static void BuildGeneratedShaders()
+        {
+            ContentBuilder contentBuilder = new ContentBuilder();
+
+            contentBuilder.Clear();
+
+            foreach (var shader in ShaderClass.Shaders)
+            {
+                if (shader.TargetFile == null) continue;
+
+                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, null, null);
+            }
+
+            // Empty the build directory
+            Directory.CreateDirectory(ShaderBuildDir);
+            foreach (var file in Directory.GetFiles(ShaderBuildDir))
+            {
+                File.Delete(file);
+            }
+
+            // Build the shaders
+            string buildError = contentBuilder.Build();
+
+            var files = Directory.GetFiles(contentBuilder.BuiltDirectory);
+
+            foreach (var file in files)
+            {
+                string new_file = Path.Combine(ShaderBuildDir, Path.GetFileName(file));
+                File.Copy(file, new_file);
+            }
+        }
+
+        static void CompileUserCode()
         {
             // Get all the relevant source files
             var files = Directory.GetFiles(ProjRoot, "*.cs", SearchOption.AllDirectories);
@@ -476,8 +517,6 @@ using Microsoft.Xna.Framework.Graphics;
             List<SyntaxTree> Trees = new List<SyntaxTree>();
             foreach (var file in files)
             {
-                //if (file.Contains(ExtensionFileName) || file.Contains(BoilerplateFileName)) continue;
-
                 Trees.Add(SyntaxTree.ParseFile(file));
             }
 
