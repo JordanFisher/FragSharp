@@ -30,6 +30,9 @@ namespace FragSharp
             
             WriteLine();
 
+            CompileVertexSignature(vertex_method);
+            EndLine();
+
             CompileFragmentSignature(fragment_method);
             EndLine();
 
@@ -43,16 +46,22 @@ namespace FragSharp
             // Vertex Shader method
             CurrentMethod = Compiling.VertexMethod;
             Write(SpaceFormat(VertexShaderBegin));
+            EndLine();
             var PrevIndent = Indent();
+            FunctionParameterPrefix = VertexShaderParameterPrefix;
             CompileStatement(vertex_method.Body);
             RestoreIndent(PrevIndent);
             Write(SpaceFormat(VertexShaderEnd));
             EndLine();
 
+            WriteLine();
+
             // Fragment Shader method
             CurrentMethod = Compiling.FragmentMethod;
             Write(SpaceFormat(FragmentShaderBegin));
+            EndLine();
             PrevIndent = Indent();
+            FunctionParameterPrefix = FragmentShaderParameterPrefix;
             CompileStatement(fragment_method.Body);
             RestoreIndent(PrevIndent);
             Write(SpaceFormat(FragmentShaderEnd));
@@ -93,14 +102,38 @@ namespace FragSharp
             return string.Format(s, Tab, LineBreak);
         }
 
+        void CompileVertexSignature(MethodDeclarationSyntax method)
+        {
+            var ParameterList = method.ParameterList.Parameters;
+            if (ParameterList.Count == 0) return;
+
+            var first = ParameterList.First();
+            var last = ParameterList.Last();
+            foreach (var parameter in ParameterList)
+            {
+                if (parameter == first) continue;
+
+                CompileVertexParameter(parameter);
+                EndLine();
+
+                //if (parameter != last)
+                //{
+                //    WriteLine();
+                //}
+            }
+        }
+
         void CompileFragmentSignature(MethodDeclarationSyntax method)
         {
             var ParameterList = method.ParameterList.Parameters;
             if (ParameterList.Count == 0) return;
 
-            var last = ParameterList.Last();
+            var first = ParameterList.First();
+            var last  = ParameterList.Last();
             foreach (var parameter in ParameterList)
             {
+                if (parameter == first) continue;
+
                 CompileFragmentParameter(parameter);
                 EndLine();
 
@@ -111,13 +144,56 @@ namespace FragSharp
             }
         }
 
+        const string VertexShaderParameterPrefix = "vs_param_";
+        const string FragmentShaderParameterPrefix = "fs_param_";
+
+        void CompileVertexParameter(ParameterSyntax parameter)
+        {
+            var info = GetModel(parameter).GetSymbolInfo(parameter.Type);
+
+            var symbol = info.Symbol as TypeSymbol;
+            if (symbol != null)
+            {
+                var translation_info = TranslationLookup.RecursiveLookup(symbol);
+                if (translation_info.Translation != null)
+                {
+                    if (translation_info.Translation == "sampler")
+                    {
+                        // Specialize
+                    }
+                    else
+                    {
+                        Write(translation_info.Translation);
+                        Write(" ");
+                        Write(VertexShaderParameterPrefix + parameter.Identifier);
+                        Write(";");
+                    }
+                }
+            }
+        }
+
         void CompileFragmentParameter(ParameterSyntax parameter)
         {
-            string type = parameter.Type.ToString();
+            var info = GetModel(parameter).GetSymbolInfo(parameter.Type);
 
-            if (type == "UnitField" || type == "Shader")
+            var symbol = info.Symbol as TypeSymbol;
+            if (symbol != null)
             {
-                CompileSamplerParameter(parameter);
+                var translation_info = TranslationLookup.RecursiveLookup(symbol);
+                if (translation_info.Translation != null)
+                {
+                    if (translation_info.Translation == "sampler")
+                    {
+                        CompileSamplerParameter(parameter);
+                    }
+                    else
+                    {
+                        Write(translation_info.Translation);
+                        Write(" ");
+                        Write(FragmentShaderParameterPrefix + parameter.Identifier);
+                        Write(";");
+                    }
+                }
             }
         }
 
@@ -129,11 +205,11 @@ namespace FragSharp
         }
 
 const string SamplerTemplate =
-@"// Texture Sampler for UnitField {2}, using register location {1}
-Texture {2};
-sampler {2}Sampler : register(s{1}) = sampler_state
+@"// Texture Sampler for {2}, using register location {1}
+Texture {2}_Texture;
+sampler {2} : register(s{1}) = sampler_state
 {{
-{0}texture   = <{2}>;
+{0}texture   = <{2}_Texture>;
 {0}MipFilter = Point;
 {0}MagFilter = Point;
 {0}MinFilter = Point;
@@ -145,7 +221,7 @@ const string ReferencedMethodsPreamble =
 @"// The following methods are included because they are referenced by the fragment shader.";
 
 const string VertexShaderBegin =
-@"// Auto-generated vertex shader
+@"// Compiled vertex shader
 VertexToPixel StandardVertexShader( float2 inPos : POSITION0, float2 inTexCoords : TEXCOORD0, float4 inColor : COLOR0)
 {{";
 
@@ -153,7 +229,7 @@ const string VertexShaderEnd =
 @"}}";
 
 const string FragmentShaderBegin = 
-@"// Auto-generated fragment shader
+@"// Compiled fragment shader
 PixelToFrame FragmentShader(VertexToPixel psin)
 {{
 {0}PixelToFrame __FinalOutput = (PixelToFrame)0;";

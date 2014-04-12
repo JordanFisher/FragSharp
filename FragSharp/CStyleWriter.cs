@@ -168,17 +168,29 @@ namespace FragSharp
             var last = declaration.Variables.Last();
             foreach (var variable in declaration.Variables)
             {
-                CompileVariableDeclarator(variable);
+                CompileVariableDeclarator(variable, declaration.Type);
                 Write(variable == last ? ";" : "," + Space);
             }
 
-            Write(LineBreak);
+            EndLine();
         }
 
-        override protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator)
+        override protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator, TypeSyntax type)
         {
             Write(declarator.Identifier);
-            CompileEqualsValueClause(declarator.Initializer);
+
+            if (declarator.Initializer == null)
+            {
+                CompileDefaultInitialization(declarator, type);
+            }
+            else
+            {
+                CompileEqualsValueClause(declarator.Initializer);
+            }
+        }
+
+        virtual protected void CompileDefaultInitialization(VariableDeclaratorSyntax declarator, TypeSyntax type)
+        {
         }
 
         override protected void CompileEqualsValueClause(EqualsValueClauseSyntax clause)
@@ -246,10 +258,37 @@ namespace FragSharp
             EndLine(";");
         }
 
+        protected static bool IsAssignment(BinaryExpressionSyntax expression)
+        {
+            var kind = expression.Kind;
+            switch (kind)
+            {
+                case SyntaxKind.AssignExpression:
+                case SyntaxKind.AddAssignExpression:
+                case SyntaxKind.AndAssignExpression:
+                case SyntaxKind.DivideAssignExpression:
+                case SyntaxKind.ExclusiveOrAssignExpression:
+                case SyntaxKind.LeftShiftAssignExpression:
+                case SyntaxKind.ModuloAssignExpression:
+                case SyntaxKind.MultiplyAssignExpression:
+                case SyntaxKind.OrAssignExpression:
+                case SyntaxKind.RightShiftAssignExpression:
+                case SyntaxKind.SubtractAssignExpression:
+                    return true;
+                default: return false;
+            }
+        }
+
+        protected bool CompilingLeftSideOfAssignment = false;
+
         override protected void CompileBinaryExpression(BinaryExpressionSyntax expression)
         {
+            if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
             CompileExpression(expression.Left);
+            if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
+
             Write("{1}{0}{1}", expression.OperatorToken, Space);
+
             CompileExpression(expression.Right);
         }
     }

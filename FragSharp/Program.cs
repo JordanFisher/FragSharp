@@ -38,6 +38,21 @@ namespace FragSharp
     {
         public static Dictionary<Symbol, MapInfo> SymbolMap = new Dictionary<Symbol, MapInfo>();
 
+        public static MapInfo RecursiveLookup(TypeSymbol symbol)
+        {
+            if (SymbolMap.ContainsKey(symbol))
+            {
+                return SymbolMap[symbol];
+            }
+            else
+            {
+                if (symbol.BaseType != null)
+                    return RecursiveLookup(symbol.BaseType);
+            }
+
+            return new MapInfo(null);
+        }
+
         static AttributeData GetHlslAttribute(Symbol symbol)
         {
             var attributes = symbol.GetAttributes();
@@ -168,7 +183,7 @@ namespace FragSharp
                         {
                             var decleration = member.DeclaringSyntaxNodes.First() as VariableDeclaratorSyntax;
 
-                            var creation = decleration.Initializer.Value as ObjectCreationExpressionSyntax;
+                            var creation = decleration.Initializer.Value;// as ObjectCreationExpressionSyntax;
                             if (null != creation)
                             {
                                 var constructor_info = Models[creation.SyntaxTree].GetSymbolInfo(creation);
@@ -195,6 +210,7 @@ namespace FragSharp
     {
         static readonly string ProjRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim";
         static readonly string SrcRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim";
+        static readonly string ShaderCompileDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__GeneratedShaders";
 
         const string ExtensionFileName = "__ExtensionBoilerplate.cs";
         const string BoilerplateFileName = "__ShaderBoilerplate.cs";
@@ -448,9 +464,24 @@ using Microsoft.Xna.Framework.Graphics;
                     shader.FragmentShaderDecleration == null ? "none" : shader.FragmentShaderDecleration.Identifier.ToString());
             }
 
-            var output = ShaderClass.Shaders[4].Compile();
+            // Create shader directory to store compiled shaders. Empty it if it has files in it.
+            Directory.CreateDirectory(ShaderCompileDir);
+            foreach (var file in Directory.GetFiles(ShaderCompileDir, "*", SearchOption.AllDirectories))
+            {
+                File.Delete(file);
+            }
 
-            Console.WriteLine("/nDone!");
+            // Compile shaders
+            foreach (var shader in ShaderClass.Shaders)
+            {
+                if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
+
+                var compiled = shader.Compile();
+
+                var filename = Path.Combine(ShaderCompileDir, shader.Symbol.Name) + ".fx";
+                
+                File.WriteAllText(filename, compiled);
+            }
         }
 
         private static void CompileUserCode()

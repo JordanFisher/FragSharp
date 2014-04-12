@@ -39,9 +39,16 @@ namespace FragSharp
 
         override protected void CompileLiteral(object value)
         {
-            if      (value is int   ) Write(value);
-            else if (value is float ) Write(value);
-            else if (value is double) Write(value);
+            if (value is int)
+            {
+                Write(value);
+            }
+            else if (value is float || value is double)
+            {
+                string val = value.ToString();
+                if (!val.Contains('.')) val += ".0";
+                Write(val);
+            }
             else Write("ERROR(Unsupported Literal : {0})", value);
         }
 
@@ -90,6 +97,7 @@ namespace FragSharp
             }
         }
 
+        protected string FunctionParameterPrefix = string.Empty;
         override protected void CompileIdentifierName(IdentifierNameSyntax syntax)
         {
             var info = GetModel(syntax).GetSymbolInfo(syntax);
@@ -103,23 +111,13 @@ namespace FragSharp
                 }
                 else if (symbol is ParameterSymbol)
                 {
-                    Write(syntax.Identifier.ValueText);
+                    Write(FunctionParameterPrefix + syntax.Identifier.ValueText);
                 }
                 else if (TranslationLookup.SymbolMap.ContainsKey(symbol))
                 {
                     var translation_info = TranslationLookup.SymbolMap[symbol];
 
-                    //if (translation_info.TranslationType == TranslationType.ReplaceMember)
-                    //{
-                    //    CompileExpression(expression.Expression);
-                    //    Write(".");
-
-                    //    Write(translation_info.Translation);
-                    //}
-                    //else if (translation_info.TranslationType == TranslationType.ReplaceExpression)
-                    {
-                        Write(translation_info.Translation);
-                    }
+                    Write(translation_info.Translation);
                 }
                 else
                 {
@@ -129,10 +127,46 @@ namespace FragSharp
                     }
                     else
                     {
-                        Write("ERROR(Non-local symbol : {0})", syntax);
+                        var const_val = GetModel(syntax).GetConstantValue(syntax);
+                        if (const_val.HasValue)
+                        {
+                            CompileLiteral(const_val.Value);
+                        }
+                        else
+                        {
+                            if (CompilingLeftSideOfAssignment)
+                            {
+                                Write("ERROR(Non-local assignment : {0})", syntax);
+                            }
+                            else
+                            {
+                                Write("ERROR(Non-local symbol : {0})", syntax);
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        override protected void CompileDefaultInitialization(VariableDeclaratorSyntax declarator, TypeSyntax type)
+        {
+            var identifier = declarator.Identifier;
+            Write("(");
+            CompileExpression(type);
+            Write(")0");
+
+            //var info = models[identifier.SyntaxTree].GetDeclaredSymbol(type);
+
+            //var symbol = info.Symbol;
+
+            //if (TranslationLookup.SymbolMap.ContainsKey(symbol))
+            //{
+            //    Write("({0})0", TranslationLookup.SymbolMap[symbol]);
+            //}
+            //else
+            //{
+            //    Write("ERROR(Can't given a default value to this unintialized variable : {0})", declarator);
+            //}
         }
     }
 }

@@ -28,7 +28,7 @@ namespace FragSharp
         protected Dictionary<SyntaxTree, SemanticModel> models;
         protected Compilation compilation;
 
-        protected SemanticModel GetModel(ExpressionSyntax expression)
+        protected SemanticModel GetModel(SyntaxNode expression)
         {
             return models[expression.SyntaxTree];
         }
@@ -59,10 +59,6 @@ namespace FragSharp
                 Write("ERROR(Improper Literal : {0})", literal);
             }
         }
-
-        //protected abstract string GetTranslation(Symbol symbol)
-        //{
-        //}
 
         protected void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression)
         {
@@ -100,9 +96,6 @@ namespace FragSharp
             }
         }
 
-
-
-
         protected Dictionary<Symbol, CompiledMethod> SymbolCompilation;
 
         protected List<Symbol> ReferencedMethods = new List<Symbol>();
@@ -138,7 +131,7 @@ namespace FragSharp
         {
             get
             {
-                return Minify ? string.Empty : "  ";
+                return Minify ? string.Empty : "    ";
             }
         }
 
@@ -302,7 +295,7 @@ namespace FragSharp
         abstract protected void CompilePrefixUnaryExpression(PrefixUnaryExpressionSyntax expression);
 
         abstract protected void CompileVariableDeclaration(VariableDeclarationSyntax declaration);
-        abstract protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator);
+        abstract protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator, TypeSyntax type);
         abstract protected void CompileEqualsValueClause(EqualsValueClauseSyntax clause);
         abstract protected void CompileArgumentList(ArgumentListSyntax list);
 
