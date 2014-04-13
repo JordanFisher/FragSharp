@@ -413,6 +413,8 @@ using Microsoft.Xna.Framework.Graphics;
 
         private static void Main()
         {
+            string Tab = "    ";
+
             // Get and compile the user's code
             CompileUserCode();
 
@@ -455,8 +457,21 @@ using Microsoft.Xna.Framework.Graphics;
 
             // Compile shaders from C# to target language
             StringWriter BoilerWriter = new StringWriter();
-            BoilerWriter.WriteLine(HlslShaderWriter.BoilerFileBegin);
+            BoilerWriter.WriteLine(HlslShaderWriter.BoilerFileBegin, Tab);
             BoilerWriter.WriteLine();
+
+            BoilerWriter.WriteLine(HlslShaderWriter.BoilerBeginInitializer, Tab);
+
+            foreach (var shader in ShaderClass.Shaders)
+            {
+                if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
+
+                BoilerWriter.WriteLine("{0}{0}{0}{1}.{2}.CompiledEffect = Content.Load<Effect>(\"FragSharpShaders/{2}\");", Tab, shader.Symbol.ContainingNamespace, shader.Symbol.Name);
+            }
+
+            BoilerWriter.WriteLine(HlslShaderWriter.BoilerEndInitializer, Tab);
+            BoilerWriter.WriteLine();
+
             foreach (var shader in ShaderClass.Shaders)
             {
                 if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
@@ -486,7 +501,7 @@ using Microsoft.Xna.Framework.Graphics;
             {
                 if (shader.TargetFile == null) continue;
 
-                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, null, null);
+                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, "Effect", "Effect");
             }
 
             // Empty the build directory

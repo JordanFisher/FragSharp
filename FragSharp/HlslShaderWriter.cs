@@ -417,5 +417,18 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 using FragSharpFramework;";
+
+public const string BoilerBeginInitializer = 
+@"namespace FragSharpFramework.Boilerplate
+{{
+{0}public class _
+{0}{{
+{0}{0}public static void Initialize(ContentManager Content)
+{0}{0}{{";
+
+public const string BoilerEndInitializer =
+@"{0}{0}}}
+{0}}}
+}}";
     }
 }
