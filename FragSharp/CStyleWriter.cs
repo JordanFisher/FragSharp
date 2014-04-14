@@ -77,13 +77,23 @@ namespace FragSharp
             Write(" {0}", method.Identifier.ValueText);
             Write("(");
 
-            var last = method.ParameterList.Parameters.Last();
-            foreach (var parameter in method.ParameterList.Parameters)
+            var Params = method.ParameterList.Parameters;
+
+            // If there is a sampler paramter we need to pass in the VertexToPixel variable.
+            // We add a paramter spot at the beginning for it.
+            if (Params.Count > 0 && Params.Any(param => IsSampler(param)))
+            {
+                Write(VertexToPixelDecl + Comma);
+            }
+
+            // Add each parameter, comma separated
+            var last = Params.Last();
+            foreach (var parameter in Params)
             {
                 CompileMethodParameter(parameter);
 
                 if (parameter != last)
-                    Write(", ");
+                    Write(Comma);
             }
 
             Write(")");
@@ -92,8 +102,16 @@ namespace FragSharp
 
         override protected void CompileMethodParameter(ParameterSyntax parameter)
         {
-            CompileExpression(parameter.Type);
-            Write(" {0}", parameter.Identifier.ValueText);
+            // Check if symbol is a shader variable
+            if (IsSampler(parameter))
+            {
+                Write("sampler {0}, float2 {0}_size, float2 {0}_d", parameter.Identifier.ValueText);
+            }
+            else
+            {
+                CompileExpression(parameter.Type);
+                Write(" {0}", parameter.Identifier.ValueText);
+            }
         }
 
         override protected void CompileIfStatement(IfStatementSyntax statement)
@@ -227,11 +245,45 @@ namespace FragSharp
 
         override protected void CompileArgumentList(ArgumentListSyntax list)
         {
-            var last = list.Arguments.Last();
-            foreach (var argument in list.Arguments)
+            var args = list.Arguments;
+
+            // If there is a sampler paramter we need to pass in the VertexToPixel variable.
+            if (args.Count > 0 && args.Any(arg => IsSampler(arg)))
             {
-                CompileExpression(argument.Expression);
-                Write(argument == last ? "" : ",{0}", Space);
+                Write(VertexToPixelVar + Comma);
+            }
+
+            // Write each argument
+            foreach (var argument in args)
+            {
+                // If an argument is a sampler, we need to pass in the size and dxdy vectors.
+                if (IsSampler(argument))
+                {
+                    // We can only pass in the extra information if the sampler is a variable, and not an expression.
+                    var identifier = argument.Expression as IdentifierNameSyntax;
+                    if (null != identifier)
+                    {
+                        CompileIdentifierName(identifier);
+                        Write(Comma);
+
+                        CompileIdentifierName(identifier);
+                        Write("_size");
+                        Write(Comma);
+
+                        CompileIdentifierName(identifier);
+                        Write("_d");
+                    }
+                    else
+                    {
+                        throw new Exception("Sampler variables cannot be passed as expressions! It must be passed as a variable name only!");
+                    }
+                }
+                else
+                {
+                    CompileExpression(argument.Expression);
+                }
+                
+                Write(argument == args.Last() ? string.Empty : Comma);
             }
 
         }

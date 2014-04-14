@@ -36,10 +36,12 @@ namespace FragSharp
             
             WriteLine();
 
+            WriteLine(VertexMethodParameters);
             CompileVertexSignature(vertex_method);
             EndLine();
 
-            CompileFragmentSignature(fragment_method);
+            WriteLine(FragmentMethodParameters);
+            var LocalFragmentLookup = CompileFragmentSignature(fragment_method);
             EndLine();
 
             // Referenced methods
@@ -63,8 +65,10 @@ namespace FragSharp
             WriteLine();
 
             // Fragment Shader method
+            UseLocalSymbolMap(LocalFragmentLookup);
+
             CurrentMethod = Compiling.FragmentMethod;
-            Write(SpaceFormat(FragmentShaderBegin));
+            Write(FragmentShaderBegin, Tab, LineBreak, VertexToPixelDecl);
             EndLine();
             PrevIndent = Indent();
             FunctionParameterPrefix = FragmentShaderParameterPrefix;
@@ -72,6 +76,8 @@ namespace FragSharp
             RestoreIndent(PrevIndent);
             Write(SpaceFormat(FragmentShaderEnd));
             EndLine();
+
+            UseLocalSymbolMap(null);
 
             WriteLine();
 
@@ -181,7 +187,16 @@ namespace FragSharp
 
             foreach (var param in Params)
             {
-                WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({0}));", param.Name);
+                if (param.MappedType == "shader")
+                {
+                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharp.Marshal({0}));",                               param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharp.Marshal(vec({0}.Width, {0}.Height)));",        param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharp.Marshal(1.0f / vec({0}.Width, {0}.Height)));", param.Name);
+                }
+                else
+                {
+                    WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({0}));", param.Name);
+                }
             }
 
             WriteLine("CompiledEffect.CurrentTechnique.Passes[0].Apply();");
@@ -216,12 +231,13 @@ namespace FragSharp
         {
             public enum ParamType { VertexParam, FragmentParam };
 
-            public string TypeName, Name, MappedName;
+            public string TypeName, MappedType, Name, MappedName;
             public ParamType Type;
 
-            public Param(string TypeName, string Name, string MappedName, ParamType Type)
+            public Param(string TypeName, string MappedType, string Name, string MappedName, ParamType Type)
             {
                 this.TypeName = TypeName;
+                this.MappedType = MappedType;
                 this.Name = Name;
                 this.MappedName = MappedName;
                 this.Type = Type;
@@ -246,16 +262,24 @@ namespace FragSharp
             }
         }
 
-        void CompileFragmentSignature(MethodDeclarationSyntax method)
+        Dictionary<Symbol, string> CompileFragmentSignature(MethodDeclarationSyntax method)
         {
+            var SignatureMap = new Dictionary<Symbol, string>();
+
             var ParameterList = method.ParameterList.Parameters;
-            if (ParameterList.Count == 0) return;
+            if (ParameterList.Count == 0) return SignatureMap;
 
             var first = ParameterList.First();
             var last  = ParameterList.Last();
             foreach (var parameter in ParameterList)
             {
-                if (parameter == first) continue;
+                if (parameter == first)
+                {
+                    var symbol = GetModel(parameter).GetDeclaredSymbol(parameter);
+
+                    SignatureMap.Add(symbol, "psin");
+                    continue;
+                }
 
                 CompileFragmentParameter(parameter);
                 EndLine();
@@ -265,6 +289,8 @@ namespace FragSharp
                     WriteLine();
                 }
             }
+
+            return SignatureMap;
         }
 
         const string VertexShaderParameterPrefix = "vs_param_";
@@ -295,7 +321,7 @@ namespace FragSharp
                         Write(mapped_name);
                         Write(";");
 
-                        Params.Add(new Param(parameter.Type.ToString(), name, mapped_name, Param.ParamType.VertexParam));
+                        Params.Add(new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.VertexParam));
                     }
                 }
             }
@@ -323,10 +349,10 @@ namespace FragSharp
 
                         Write(type);
                         Write(" ");
-                        Write(name);
+                        Write(mapped_name);
                         Write(";");
 
-                        Params.Add(new Param(parameter.Type.ToString(), name, mapped_name, Param.ParamType.FragmentParam));
+                        Params.Add(new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.FragmentParam));
                     }
                 }
             }
@@ -337,13 +363,18 @@ namespace FragSharp
             SamplerNumber++;
 
             string name = parameter.Identifier.ValueText;
-            Write(SamplerTemplate, Tab, SamplerNumber, name);
+            string mapped_name = FragmentShaderParameterPrefix + name;
 
-            Params.Add(new Param("Texture2D", name, name, Param.ParamType.FragmentParam));
+            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name);
+
+            Params.Add(new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam));
         }
 
 const string SamplerTemplate =
 @"// Texture Sampler for {2}, using register location {1}
+float2 {2}_size;
+float2 {2}_d;
+
 Texture {2}_Texture;
 sampler {2} : register(s{1}) = sampler_state
 {{
@@ -358,6 +389,12 @@ sampler {2} : register(s{1}) = sampler_state
 const string ReferencedMethodsPreamble =
 @"// The following methods are included because they are referenced by the fragment shader.";
 
+const string VertexMethodParameters =
+@"// The following are variables used by the vertex shader (vertex parameters).";
+
+const string FragmentMethodParameters =
+@"// The following are variables used by the fragment shader (fragment parameters).";
+
 const string VertexShaderBegin =
 @"// Compiled vertex shader
 VertexToPixel StandardVertexShader( float2 inPos : POSITION0, float2 inTexCoords : TEXCOORD0, float4 inColor : COLOR0)
@@ -368,7 +405,7 @@ const string VertexShaderEnd =
 
 const string FragmentShaderBegin = 
 @"// Compiled fragment shader
-PixelToFrame FragmentShader(VertexToPixel psin)
+PixelToFrame FragmentShader({2})
 {{
 {0}PixelToFrame __FinalOutput = (PixelToFrame)0;";
 
@@ -378,6 +415,9 @@ const string FragmentShaderEnd =
 const string FileBegin =
 @"// This file was auto-generated by FragSharp. It will be regenerated on the next compilation.
 // Manual changes made will not persist and may cause incorrect behavior between compilations.
+
+#define PIXEL_SHADER ps_3_0
+#define VERTEX_SHADER vs_3_0
 
 // Vertex shader data structure definition
 struct VertexToPixel

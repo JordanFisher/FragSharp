@@ -501,7 +501,7 @@ using Microsoft.Xna.Framework.Graphics;
             {
                 if (shader.TargetFile == null) continue;
 
-                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, "Effect", "Effect");
+                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, "EffectImporter", "EffectProcessor");
             }
 
             // Empty the build directory

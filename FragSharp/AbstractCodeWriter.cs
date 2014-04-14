@@ -135,6 +135,14 @@ namespace FragSharp
             }
         }
 
+        public string Comma
+        {
+            get
+            {
+                return ',' + Space;
+            }
+        }
+
         public string Space
         {
             get
@@ -298,6 +306,44 @@ namespace FragSharp
         abstract protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator, TypeSyntax type);
         abstract protected void CompileEqualsValueClause(EqualsValueClauseSyntax clause);
         abstract protected void CompileArgumentList(ArgumentListSyntax list);
+
+        abstract protected string VertexToPixelVar { get; }
+        abstract protected string VertexToPixelType { get; }
+        abstract protected string VertexToPixelDecl { get; }
+
+        protected bool IsSampler(SyntaxNode param) { return IsSamplerType(GetType(GetSymbol(param))); }
+
+        protected bool IsSamplerType(Symbol symbol)
+        {
+            return symbol != null && TranslationLookup.SymbolMap.ContainsKey(symbol) && TranslationLookup.SymbolMap[symbol].Translation == "sampler";
+        }
+
+        protected TypeSymbol GetType(Symbol symbol)
+        {
+            if (symbol == null) return null;
+
+            if      (symbol is LocalSymbol)     return ((LocalSymbol)    symbol).Type;
+            else if (symbol is ParameterSymbol) return ((ParameterSymbol)symbol).Type;
+            else if (symbol is FieldSymbol)     return ((FieldSymbol)    symbol).Type;
+            else if (symbol is PropertySymbol)  return ((PropertySymbol) symbol).Type;
+            else if (symbol is MethodSymbol)    return ((MethodSymbol)   symbol).ReturnType;
+            
+            else throw new Exception("Symbol has no type!");
+        }
+
+        protected Symbol          GetSymbol(ArgumentSyntax  syntax) { return syntax == null ? null : GetModel(syntax).GetSymbolInfo(syntax.Expression).Symbol; }
+        protected ParameterSymbol GetSymbol(ParameterSyntax syntax) { return syntax == null ? null : GetModel(syntax).GetDeclaredSymbol(syntax); }
+
+        protected Symbol GetSymbol(SyntaxNode syntax)
+        {
+            if (syntax == null) return null;
+
+            var m = GetModel(syntax);
+
+            if      (syntax is ArgumentSyntax)  return m.GetSymbolInfo(((ArgumentSyntax)syntax).Expression).Symbol;
+            else if (syntax is ParameterSyntax) return m.GetDeclaredSymbol((ParameterSyntax)syntax);
+            else throw new Exception("Code stub! Fix me please!");
+        }
 
         /// <summary>
         /// This is a special string formatting helper function to assist in formatting strings with curly braces inside.

@@ -57,9 +57,11 @@ namespace FragSharp
             Write("tex2D(");
             CompileExpression(expression.Expression);
             Write(",{0}", Space);
-            Write("PSIn.TexCoords{0}+{0}(float2(.5,.5){0}+{0}(", Space);
+            Write("psin.TexCoords{0}+{0}(float2(.5,.5){0}+{0}(", Space);
             CompileExpression(expression.ArgumentList.Arguments[0].Expression);
-            Write("){0}*{0}float2(dx,{0}dy)))", Space);
+            Write("){0}*{0}", Space);
+            CompileExpression(expression.Expression);
+            Write("_d))", Space);
         }
 
         override protected void CompileInvocationExpression(InvocationExpressionSyntax expression)
@@ -98,6 +100,13 @@ namespace FragSharp
         }
 
         protected string FunctionParameterPrefix = string.Empty;
+        
+        protected Dictionary<Symbol, string> LocalSymbolMap = new Dictionary<Symbol,string>();
+        protected void UseLocalSymbolMap(Dictionary<Symbol, string> map)
+        {
+            LocalSymbolMap = map;
+        }
+
         override protected void CompileIdentifierName(IdentifierNameSyntax syntax)
         {
             var info = GetModel(syntax).GetSymbolInfo(syntax);
@@ -105,13 +114,17 @@ namespace FragSharp
             var symbol = info.Symbol;
             if (symbol != null)
             {
-                if (symbol is LocalSymbol)
+                if (LocalSymbolMap.ContainsKey(symbol))
                 {
-                    Write(syntax.Identifier.ValueText);
+                    var translation = LocalSymbolMap[symbol];
+                    Write(translation);
                 }
-                else if (symbol is ParameterSymbol)
+                else if (symbol is LocalSymbol || symbol is ParameterSymbol)
                 {
-                    Write(FunctionParameterPrefix + syntax.Identifier.ValueText);
+                    string name = syntax.Identifier.ValueText;
+                    if (symbol is ParameterSymbol) name = FunctionParameterPrefix + name;
+
+                    Write(name);
                 }
                 else if (TranslationLookup.SymbolMap.ContainsKey(symbol))
                 {
@@ -150,7 +163,10 @@ namespace FragSharp
 
         override protected void CompileDefaultInitialization(VariableDeclaratorSyntax declarator, TypeSyntax type)
         {
-            var identifier = declarator.Identifier;
+            //var identifier = declarator.Identifier;
+
+            Write("=");
+            Write(Space);
             Write("(");
             CompileExpression(type);
             Write(")0");
@@ -168,5 +184,9 @@ namespace FragSharp
             //    Write("ERROR(Can't given a default value to this unintialized variable : {0})", declarator);
             //}
         }
+
+        override protected string VertexToPixelVar { get { return "psin"; } }
+        override protected string VertexToPixelType { get { return "VertexToPixel"; } }
+        override protected string VertexToPixelDecl { get { return VertexToPixelType + " " + VertexToPixelVar; } }
     }
 }
