@@ -20,8 +20,6 @@ namespace FragSharp
         {
         }
 
-        //const string _0 = "0/255.0", _1 = "1/255.0", _2 = "2/255.0", _3 = "3/255.0", _4 = "4/255.0", _5 = "5/255.0", _6 = "6/255.0", _7 = "7/255.0", _8 = "8/255.0", _9 = "9/255.0", _10 = "10/255.0", _11 = "11/255.0", _12 = "12/255.0";
-
         override protected void CompileType(TypeSyntax type)
         {
             var info = GetModel(type).GetSymbolInfo(type);
@@ -33,7 +31,16 @@ namespace FragSharp
             }
             else
             {
-                Write("ERROR(Unsupported type : {0})", type);
+                var predefined = type as PredefinedTypeSyntax;
+                if (null != predefined)
+                {
+                    if (predefined.Keyword.ToString() == "void")
+                        Write("void");
+                }
+                else
+                {
+                    Write("ERROR(Unsupported type : {0})", type);
+                }
             }
         }
 

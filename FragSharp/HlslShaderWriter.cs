@@ -397,7 +397,7 @@ const string FragmentMethodParameters =
 
 const string VertexShaderBegin =
 @"// Compiled vertex shader
-VertexToPixel StandardVertexShader( float2 inPos : POSITION0, float2 inTexCoords : TEXCOORD0, float4 inColor : COLOR0)
+VertexToPixel StandardVertexShader(float2 inPos : POSITION0, float2 inTexCoords : TEXCOORD0, float4 inColor : COLOR0)
 {{";
 
 const string VertexShaderEnd =

@@ -109,6 +109,11 @@ namespace FragSharp
             }
             else
             {
+                if (parameter.Modifiers.ToList().Any(modifier => modifier.IsKeyword() && modifier.ToString() == "ref"))
+                {
+                    Write("inout ");
+                }
+
                 CompileExpression(parameter.Type);
                 Write(" {0}", parameter.Identifier.ValueText);
             }
