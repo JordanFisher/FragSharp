@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Roslyn.Compilers;
 using Roslyn.Compilers.CSharp;
 
 namespace FragSharp
@@ -189,13 +185,13 @@ namespace FragSharp
             {
                 if (param.MappedType == "shader")
                 {
-                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharp.Marshal({0}));",                               param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharp.Marshal(vec({0}.Width, {0}.Height)));",        param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharp.Marshal(1.0f / vec({0}.Width, {0}.Height)));", param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharp.Marshal({1}));",                               param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharp.Marshal(vec({1}.Width, {1}.Height)));",        param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharp.Marshal(1.0f / vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
                 }
                 else
                 {
-                    WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({0}));", param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({1}));", param.MappedName, param.Name);
                 }
             }
 

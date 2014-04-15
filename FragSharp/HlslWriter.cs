@@ -35,7 +35,9 @@ namespace FragSharp
                 if (null != predefined)
                 {
                     if (predefined.Keyword.ToString() == "void")
+                    {
                         Write("void");
+                    }
                 }
                 else
                 {
@@ -56,19 +58,51 @@ namespace FragSharp
                 if (!val.Contains('.')) val += ".0";
                 Write(val);
             }
-            else Write("ERROR(Unsupported Literal : {0})", value);
+            else
+            {
+                Write("ERROR(Unsupported Literal : {0})", value);
+            }
         }
 
         override protected void CompileElementAccessExpression(ElementAccessExpressionSyntax expression)
         {
-            Write("tex2D(");
-            CompileExpression(expression.Expression);
-            Write(",{0}", Space);
-            Write("psin.TexCoords{0}+{0}(float2(.5,.5){0}+{0}(", Space);
-            CompileExpression(expression.ArgumentList.Arguments[0].Expression);
-            Write("){0}*{0}", Space);
-            CompileExpression(expression.Expression);
-            Write("_d))", Space);
+            var argument = expression.ArgumentList.Arguments[0];
+
+            var symbol = GetSymbol(argument);
+            var type = GetType(symbol);
+
+            if (type.Name == "vec2")
+            {
+                Write("tex2D(");
+                CompileExpression(expression.Expression);
+                Write(Comma);
+                CompileExpression(argument.Expression);
+                Write(")");
+            }
+            else if (type.Name == "RelativeIndex")
+            {
+                // Without .5,.5 shift
+                Write("tex2D(");
+                CompileExpression(expression.Expression);
+                Write(Comma);
+                Write("psin.TexCoords{0}+{0}(", Space);
+                CompileExpression(argument.Expression);
+                Write("){0}*{0}", Space);
+                //CompileExpression(expression.Expression);
+                //Write("_d)", Space);
+                Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
+
+                // With .5,.5 shift
+                //Write("tex2D(");
+                //CompileExpression(expression.Expression);
+                //Write(Comma);
+                //Write("psin.TexCoords{0}+{0}(float2(.5,.5){0}+{0}(", Space);
+                //CompileExpression(argument.Expression);
+                //Write(")){0}*{0}", Space);
+                ////CompileExpression(expression.Expression);
+                ////Write("_d)", Space);
+                //Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
+            }
         }
 
         override protected void CompileInvocationExpression(InvocationExpressionSyntax expression)

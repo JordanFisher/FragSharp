@@ -340,8 +340,10 @@ namespace FragSharp
 
             var m = GetModel(syntax);
 
-            if      (syntax is ArgumentSyntax)  return m.GetSymbolInfo(((ArgumentSyntax)syntax).Expression).Symbol;
-            else if (syntax is ParameterSyntax) return m.GetDeclaredSymbol((ParameterSyntax)syntax);
+            if      (syntax is ArgumentSyntax)               return m.GetSymbolInfo    (((ArgumentSyntax)syntax).Expression).Symbol;
+            else if (syntax is ParameterSyntax)              return m.GetDeclaredSymbol((ParameterSyntax)syntax);
+            //else if (syntax is IdentifierNameSyntax)         return m.GetSymbolInfo(((IdentifierNameSyntax)syntax).Identifier);
+            //else if (syntax is MemberAccessExpressionSyntax) return m.GetSymbolInfo(((MemberAccessExpressionSyntax)syntax).Name);
             else throw new Exception("Code stub! Fix me please!");
         }
 

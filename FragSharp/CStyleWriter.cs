@@ -340,13 +340,26 @@ namespace FragSharp
 
         override protected void CompileBinaryExpression(BinaryExpressionSyntax expression)
         {
-            if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
-            CompileExpression(expression.Left);
-            if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
+            if (expression.OperatorToken.ValueText == "==")
+            {
+                Write("abs(");
+                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
+                CompileExpression(expression.Left);
+                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
+                Write("{0}-{0}", Space);
+                CompileExpression(expression.Right);
+                Write(") < .001");
+            }
+            else
+            {
+                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
+                CompileExpression(expression.Left);
+                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
 
-            Write("{1}{0}{1}", expression.OperatorToken, Space);
+                Write("{1}{0}{1}", expression.OperatorToken, Space);
 
-            CompileExpression(expression.Right);
+                CompileExpression(expression.Right);
+            }
         }
     }
 }
