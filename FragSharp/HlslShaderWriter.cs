@@ -158,6 +158,9 @@ namespace FragSharp
             WriteLine("{");
             var PrevIndent = Indent();
 
+            WriteLine("GridHelper.GraphicsDevice.SetRenderTarget(Output);");
+            WriteLine("GridHelper.GraphicsDevice.Clear(Color.Transparent);");
+
             BeginLine("Use(");
 
             foreach (var param in Params)
@@ -171,6 +174,8 @@ namespace FragSharp
             }
 
             EndLine(");");
+
+            WriteLine("GridHelper.DrawGrid();");
 
             RestoreIndent(PrevIndent);
             WriteLine("}");    

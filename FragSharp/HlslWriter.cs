@@ -58,6 +58,10 @@ namespace FragSharp
                 if (!val.Contains('.')) val += ".0";
                 Write(val);
             }
+            else if (value is bool)
+            {
+                Write((bool)value ? "true" : "false");
+            }
             else
             {
                 Write("ERROR(Unsupported Literal : {0})", value);
