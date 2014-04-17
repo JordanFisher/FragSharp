@@ -152,12 +152,6 @@ namespace FragSharp
                 {
                     if (member is NamedTypeSymbol) continue; // Skip nested type defintions. We alraedy processed all types.
 
-                    //if (member.DeclaringSyntaxNodes.Count > 0 && member.DeclaringSyntaxNodes[0] is AccessorDeclarationSyntax)
-                    //{
-                    //    ProcessAccessor(_class, (AccessorDeclarationSyntax)member.DeclaringSyntaxNodes[0]);
-                    //}
-                    //else
-
                     var attribute = GetHlslAttribute(member);
                     if (attribute != null)
                     {
@@ -209,13 +203,29 @@ namespace FragSharp
         }
     }
 
+    class Paths
+    {
+        public readonly string CompilerDir, FrameworkDir, ProjectDir, TargetDir, BoilerRoot, ShaderCompileDir, ShaderBuildDir;
+
+        public Paths(string[] args)
+        {
+            ProjectDir = args[0];
+            TargetDir = args[1];
+
+            BoilerRoot = Path.Combine(ProjectDir, "__FragSharp");
+            ShaderCompileDir = Path.Combine(ProjectDir, "__GeneratedShaders");
+            ShaderBuildDir = Path.Combine(Path.Combine(TargetDir, "Content"), "FragSharpShaders");
+
+            CompilerDir  = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            FrameworkDir = Path.Combine("FragSharpFramework", CompilerDir);
+        }
+    }
+
     internal static class Program
     {
-        static readonly string ProjRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim";
-        static readonly string SrcRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim";
-        static readonly string BoilerRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__FragSharp";
-        static readonly string ShaderCompileDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__GeneratedShaders";
-        static readonly string ShaderBuildDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/bin/x86/Debug/Content/FragSharpShaders";
+        static Paths BuildPaths;
+
+        const string Tab = "    ";
 
         const string ExtensionFileName = "__ExtensionBoilerplate.cs";
         const string BoilerplateFileName = "__ShaderBoilerplate.cs";
@@ -412,13 +422,30 @@ using FragSharpFramework;
                 }
             }
 
-            Directory.CreateDirectory(BoilerRoot);
-            File.WriteAllText(Path.Combine(BoilerRoot, ExtensionFileName), writer.ToString());
+            Directory.CreateDirectory(BuildPaths.BoilerRoot);
+            File.WriteAllText(Path.Combine(BuildPaths.BoilerRoot, ExtensionFileName), writer.ToString());
         }
 
-        private static void Main()
+        static void ParseArgs(string[] args)
         {
-            string Tab = "    ";
+            if (args.Length < 2)
+            {
+                Console.WriteLine("FragSharp requires two arguments: Source directory; Output directory.");
+                Console.WriteLine("Defaulting to debug directories.");
+
+                ParseArgs(new string[] {
+                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim",
+                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/bin/x86/Debug/" });
+            }
+            else
+            {
+                BuildPaths = new Paths(args);
+            }
+        }
+
+        private static void Main(string[] args)
+        {
+            ParseArgs(args);
 
             // Get and compile the user's code
             CompileUserCode();
@@ -454,8 +481,8 @@ using FragSharpFramework;
             }
 
             // Create shader directory to store compiled shaders. Empty it if it has files in it.
-            Directory.CreateDirectory(ShaderCompileDir);
-            foreach (var file in Directory.GetFiles(ShaderCompileDir, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(BuildPaths.ShaderCompileDir);
+            foreach (var file in Directory.GetFiles(BuildPaths.ShaderCompileDir, "*", SearchOption.AllDirectories))
             {
                 File.Delete(file);
             }
@@ -483,7 +510,7 @@ using FragSharpFramework;
 
                 var compiled = shader.Compile();
 
-                shader.TargetFile = Path.Combine(ShaderCompileDir, shader.Symbol.Name) + ".fx";
+                shader.TargetFile = Path.Combine(BuildPaths.ShaderCompileDir, shader.Symbol.Name) + ".fx";
 
                 File.WriteAllText(shader.TargetFile, compiled.Code);
                 
@@ -491,8 +518,8 @@ using FragSharpFramework;
                 BoilerWriter.WriteLine();
             }
 
-            Directory.CreateDirectory(BoilerRoot);
-            File.WriteAllText(Path.Combine(BoilerRoot, BoilerplateFileName), BoilerWriter.ToString());
+            Directory.CreateDirectory(BuildPaths.BoilerRoot);
+            File.WriteAllText(Path.Combine(BuildPaths.BoilerRoot, BoilerplateFileName), BoilerWriter.ToString());
 
             // Compile target shaders
             BuildGeneratedShaders();
@@ -512,8 +539,8 @@ using FragSharpFramework;
             }
 
             // Empty the build directory
-            Directory.CreateDirectory(ShaderBuildDir);
-            foreach (var file in Directory.GetFiles(ShaderBuildDir))
+            Directory.CreateDirectory(BuildPaths.ShaderBuildDir);
+            foreach (var file in Directory.GetFiles(BuildPaths.ShaderBuildDir))
             {
                 File.Delete(file);
             }
@@ -525,7 +552,7 @@ using FragSharpFramework;
 
             foreach (var file in files)
             {
-                string new_file = Path.Combine(ShaderBuildDir, Path.GetFileName(file));
+                string new_file = Path.Combine(BuildPaths.ShaderBuildDir, Path.GetFileName(file));
                 File.Copy(file, new_file);
             }
         }
@@ -533,8 +560,10 @@ using FragSharpFramework;
         static void CompileUserCode()
         {
             // Get all the relevant source files
-            var files =    Directory.GetFiles(ProjRoot, "*.cs", SearchOption.AllDirectories).ToList();
-            files.AddRange(Directory.GetFiles("FragSharpFramework", "*.cs", SearchOption.AllDirectories).ToList());
+            //var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
+            //files.AddRange(Directory.GetFiles("FragSharpFramework",  "*.cs", SearchOption.AllDirectories).ToList());
+            var files = Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
+            files.AddRange(Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories).ToList());
 
             // Get all the syntax trees from the source files
             List<SyntaxTree> Trees = new List<SyntaxTree>();

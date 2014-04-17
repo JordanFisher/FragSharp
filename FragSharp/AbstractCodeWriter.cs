@@ -8,7 +8,7 @@ using Roslyn.Compilers.CSharp;
 
 namespace FragSharp
 {
-    internal abstract class AbstractCodeWriter
+    internal abstract class AbstractCodeWriter : IDisposable
     {
         public AbstractCodeWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
         {
@@ -370,6 +370,12 @@ namespace FragSharp
             }
 
             return format;
+        }
+
+        public void Dispose()
+        {
+            if (writer != null)
+                writer.Dispose();
         }
     }
 }

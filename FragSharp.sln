@@ -5,6 +5,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragSharp", "FragSharp\Frag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragSharpFramework", "FragSharpFramework\FragSharpFramework.csproj", "{0DD9A20D-2BCA-4285-8AB7-6C234A8DD35A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{470B424B-D62A-4568-A5C3-28C33F38854D}"
+	ProjectSection(SolutionItems) = preProject
+		Performance1.psess = Performance1.psess
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +25,7 @@ Global
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Debug|x86.Build.0 = Debug|Any CPU
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5BFFF263-E2EC-4EA2-9237-F68DC9FDBB9B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
@@ -38,5 +44,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
