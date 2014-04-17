@@ -23,8 +23,8 @@ namespace FragSharp
             list1.AddRange(list2.Distinct().Except(list1));
         }
     }
-    
-    public enum TranslationType { ReplaceMember, ReplaceExpression };
+
+    public enum TranslationType { ReplaceMember, ReplaceExpression, UnderscoreAppend };
     public struct MapInfo
     {
         public string Translation;
@@ -213,6 +213,7 @@ namespace FragSharp
     {
         static readonly string ProjRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim";
         static readonly string SrcRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim";
+        static readonly string BoilerRoot = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__FragSharp";
         static readonly string ShaderCompileDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__GeneratedShaders";
         static readonly string ShaderBuildDir = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/bin/x86/Debug/Content/FragSharpShaders";
 
@@ -310,7 +311,7 @@ namespace FragSharp
                     return VertexShaderDecleration;
                 }
 
-                if (BaseClass != null)
+                if (GetBaseClass() != null)
                 {
                     VertexShaderDecleration = BaseClass.GetVertexShaderDecleration();
                     return VertexShaderDecleration;
@@ -353,7 +354,9 @@ namespace FragSharp
         static bool IsShader(this NamedTypeSymbol symbol)
         {
             if (symbol.BaseType == null) return false;
-            else return symbol.BaseType.ToString() == "FragSharpFramework.Shader" || symbol.BaseType.IsShader();
+            else return 
+                    symbol.BaseType.ToString() == "FragSharpFramework.FragSharpCode" ||
+                    symbol.BaseType.IsShader();
         }
 
         static SemanticModel Model(SyntaxNode node)
@@ -376,6 +379,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
+using FragSharpFramework;
 ");
 
             var classes = Nodes.OfType<TypeDeclarationSyntax>();
@@ -408,7 +412,8 @@ using Microsoft.Xna.Framework.Graphics;
                 }
             }
 
-            File.WriteAllText(Path.Combine(SrcRoot, ExtensionFileName), writer.ToString());
+            Directory.CreateDirectory(BoilerRoot);
+            File.WriteAllText(Path.Combine(BoilerRoot, ExtensionFileName), writer.ToString());
         }
 
         private static void Main()
@@ -485,7 +490,9 @@ using Microsoft.Xna.Framework.Graphics;
                 BoilerWriter.Write(compiled.Boilerplate);
                 BoilerWriter.WriteLine();
             }
-            File.WriteAllText(Path.Combine(SrcRoot, BoilerplateFileName), BoilerWriter.ToString());
+
+            Directory.CreateDirectory(BoilerRoot);
+            File.WriteAllText(Path.Combine(BoilerRoot, BoilerplateFileName), BoilerWriter.ToString());
 
             // Compile target shaders
             BuildGeneratedShaders();
@@ -526,7 +533,8 @@ using Microsoft.Xna.Framework.Graphics;
         static void CompileUserCode()
         {
             // Get all the relevant source files
-            var files = Directory.GetFiles(ProjRoot, "*.cs", SearchOption.AllDirectories);
+            var files =    Directory.GetFiles(ProjRoot, "*.cs", SearchOption.AllDirectories).ToList();
+            files.AddRange(Directory.GetFiles("FragSharpFramework", "*.cs", SearchOption.AllDirectories).ToList());
 
             // Get all the syntax trees from the source files
             List<SyntaxTree> Trees = new List<SyntaxTree>();

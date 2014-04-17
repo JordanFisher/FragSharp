@@ -73,6 +73,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\FragSharpFramework\FragSharp.cs">
+      <Link>FragSharpFramework\FragSharp.cs</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\FragSharpFramework\Vectors.cs">
+      <Link>FragSharpFramework\Vectors.cs</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="ContentBuilder.cs" />
     <Compile Include="CStyleWriter.cs" />
     <Compile Include="ErrorLogger.cs" />

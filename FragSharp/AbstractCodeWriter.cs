@@ -81,6 +81,13 @@ namespace FragSharp
                 {
                     Write(translation_info.Translation);
                 }
+                else if (translation_info.TranslationType == TranslationType.UnderscoreAppend)
+                {
+                    CompileExpression(expression.Expression);
+                    Write("_");
+
+                    Write(translation_info.Translation);
+                }
             }
             else
             {

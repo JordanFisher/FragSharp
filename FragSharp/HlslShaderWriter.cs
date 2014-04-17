@@ -190,13 +190,13 @@ namespace FragSharp
             {
                 if (param.MappedType == "shader")
                 {
-                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharp.Marshal({1}));",                               param.MappedName, param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharp.Marshal(vec({1}.Width, {1}.Height)));",        param.MappedName, param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharp.Marshal(1.0f / vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharpMarshal.Marshal({1}));",                               param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharpMarshal.Marshal(vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharpMarshal.Marshal(1.0f / vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
                 }
                 else
                 {
-                    WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharp.Marshal({1}));", param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}\"].SetValue(FragSharpMarshal.Marshal({1}));", param.MappedName, param.Name);
                 }
             }
 
@@ -459,13 +459,17 @@ using Microsoft.Xna.Framework.Graphics;
 
 using FragSharpFramework;";
 
-public const string BoilerBeginInitializer = 
-@"namespace FragSharpFramework.Boilerplate
+public const string BoilerBeginInitializer =
+@"namespace FragSharpFramework
 {{
-{0}public class _
+{0}public class FragSharp
 {0}{{
-{0}{0}public static void Initialize(ContentManager Content)
-{0}{0}{{";
+{0}{0}public static ContentManager Content;
+{0}{0}public static GraphicsDevice GraphicsDevice;
+{0}{0}public static void Initialize(ContentManager Content, GraphicsDevice GraphicsDevice)
+{0}{0}{{
+{0}{0}{0}FragSharp.Content = Content;
+{0}{0}{0}FragSharp.GraphicsDevice = GraphicsDevice;";
 
 public const string BoilerEndInitializer =
 @"{0}{0}}}
