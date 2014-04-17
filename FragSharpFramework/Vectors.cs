@@ -8,6 +8,18 @@ using Microsoft.Xna.Framework.Graphics;
 namespace FragSharpFramework
 {
     [Hlsl("float2")]
+    public struct RelativeIndex
+    {
+        [Hlsl("x")]
+        public float i;
+        [Hlsl("y")]
+        public float j;
+
+        [Hlsl("float2")]
+        public RelativeIndex(float i, float j) { this.i = i; this.j = j; }
+    }
+
+    [Hlsl("float2")]
     public partial struct vec2
     {
         [Hlsl("float2")]

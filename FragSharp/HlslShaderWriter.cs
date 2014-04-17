@@ -2,6 +2,8 @@
 using System.Linq;
 using Roslyn.Compilers.CSharp;
 
+using FragSharpFramework;
+
 namespace FragSharp
 {
     public class ShaderCompilation
@@ -190,9 +192,9 @@ namespace FragSharp
             {
                 if (param.MappedType == "shader")
                 {
-                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharpMarshal.Marshal({1}));",                               param.MappedName, param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_size\"]   .SetValue(FragSharpMarshal.Marshal(vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
-                    WriteLine("CompiledEffect.Parameters[\"{0}_d\"]      .SetValue(FragSharpMarshal.Marshal(1.0f / vec({1}.Width, {1}.Height)));", param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_Texture\"].SetValue(FragSharpMarshal.Marshal({1}));", param.MappedName, param.Name);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_{2}\"].SetValue(FragSharpMarshal.Marshal(vec({1}.Width, {1}.Height)));", param.MappedName, param.Name, Sampler.SizeSuffix);
+                    WriteLine("CompiledEffect.Parameters[\"{0}_{2}\"].SetValue(FragSharpMarshal.Marshal(1.0f / vec({1}.Width, {1}.Height)));", param.MappedName, param.Name, Sampler.DxDySuffix);
                 }
                 else
                 {
@@ -373,8 +375,8 @@ namespace FragSharp
 
 const string SamplerTemplate =
 @"// Texture Sampler for {2}, using register location {1}
-float2 {2}_size;
-float2 {2}_d;
+float2 {2}_" + Sampler.SizeSuffix + @";
+float2 {2}_" + Sampler.DxDySuffix + @";
 
 Texture {2}_Texture;
 sampler {2} : register(s{1}) = sampler_state

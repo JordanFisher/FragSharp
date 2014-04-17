@@ -6,6 +6,8 @@ using System.Text;
 using Roslyn.Compilers;
 using Roslyn.Compilers.CSharp;
 
+using FragSharpFramework;
+
 namespace FragSharp
 {
     internal class HlslWriter : CStyleWriter
@@ -92,9 +94,9 @@ namespace FragSharp
                 Write("psin.TexCoords{0}+{0}(", Space);
                 CompileExpression(argument.Expression);
                 Write("){0}*{0}", Space);
-                //CompileExpression(expression.Expression);
-                //Write("_d)", Space);
-                Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
+                CompileExpression(expression.Expression);
+                Write("_{0})", Sampler.DxDySuffix);
+                //Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
 
                 // With .5,.5 shift
                 //Write("tex2D(");

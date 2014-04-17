@@ -6,6 +6,8 @@ using System.Text;
 using Roslyn.Compilers;
 using Roslyn.Compilers.CSharp;
 
+using FragSharpFramework;
+
 namespace FragSharp
 {
     class _Indent : IDisposable
@@ -105,7 +107,7 @@ namespace FragSharp
             // Check if symbol is a shader variable
             if (IsSampler(parameter))
             {
-                Write("sampler {0}, float2 {0}_size, float2 {0}_d", parameter.Identifier.ValueText);
+                Write("sampler {0}, float2 {0}_{1}, float2 {0}_{2}", parameter.Identifier.ValueText, Sampler.SizeSuffix, Sampler.DxDySuffix);
             }
             else
             {
@@ -272,11 +274,13 @@ namespace FragSharp
                         Write(Comma);
 
                         CompileIdentifierName(identifier);
-                        Write("_size");
+                        Write("_");
+                        Write(Sampler.SizeSuffix);
                         Write(Comma);
 
                         CompileIdentifierName(identifier);
-                        Write("_d");
+                        Write("_");
+                        Write(Sampler.DxDySuffix);
                     }
                     else
                     {

@@ -355,7 +355,7 @@ namespace FragSharp
         {
             if (symbol.BaseType == null) return false;
             else return 
-                    symbol.BaseType.ToString() == "FragSharpFramework.FragSharpCode" ||
+                    symbol.BaseType.ToString() == "FragSharpFramework.FragSharpStd" ||
                     symbol.BaseType.IsShader();
         }
 
