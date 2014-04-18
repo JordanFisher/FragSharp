@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 
 using Roslyn.Compilers;
+using Roslyn.Compilers.Common;
+using Roslyn.Services;
 using Roslyn.Compilers.CSharp;
 
 using FragSharp.Build;
@@ -205,12 +207,14 @@ namespace FragSharp
 
     class Paths
     {
-        public readonly string CompilerDir, FrameworkDir, ProjectDir, TargetDir, BoilerRoot, ShaderCompileDir, ShaderBuildDir;
+        public readonly string CompilerDir, FrameworkDir, ProjectDir, TargetDir, BoilerRoot, ShaderCompileDir, ShaderBuildDir, ProjectPath;
 
         public Paths(string[] args)
         {
-            ProjectDir = args[0];
+            ProjectPath = args[0];
             TargetDir = args[1];
+
+            ProjectDir = Path.GetDirectoryName(ProjectPath);
 
             BoilerRoot = Path.Combine(ProjectDir, "__FragSharp");
             ShaderCompileDir = Path.Combine(ProjectDir, "__GeneratedShaders");
@@ -374,7 +378,7 @@ namespace FragSharp
             return Models[node.SyntaxTree];
         }
 
-        static void CreateExtensionBoilerplate(Dictionary<SyntaxTree, SemanticModel> Models, IEnumerable<SyntaxNode> Nodes)
+        static bool CreateExtensionBoilerplate(Dictionary<SyntaxTree, SemanticModel> Models, IEnumerable<SyntaxNode> Nodes)
         {
             StringWriter writer = new StringWriter();
 
@@ -397,24 +401,44 @@ using FragSharpFramework;
 
             foreach (var _class in classes)
             {
-                var symbol = Models[_class.SyntaxTree].GetDeclaredSymbol(_class);
+                var copy_attribute = GetCopyAttribute(_class);
+                if (copy_attribute == null) continue;
 
-                if (Processed.Contains(symbol)) continue;
+                var arg = copy_attribute.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax;
+                var type = Models[_class.SyntaxTree].GetSymbolInfo(arg.Type).Symbol as NamedTypeSymbol;
 
-                Processed.Add(symbol);
+                var class_symbol = Models[_class.SyntaxTree].GetDeclaredSymbol(_class);
+                if (Processed.Contains(class_symbol)) continue;
+                Processed.Add(class_symbol);
 
-                var attributes = symbol.GetAttributes().ToList();
+                /*
+                var attributes = symbol.GetAttributes();
                 if (attributes.Count == 0) continue;
 
-                var copy = attributes.Find(a => a.AttributeClass.Name.ToString() == "CopyAttribute");
+                AttributeData copy = null;
+                foreach (var a in attributes)
+                {
+                    if (a.AttributeClass.Name == "CopyAttribute")
+                    {
+                        copy = a;
+                        break;
+                    }
+                }
+
+                NamedTypeSymbol type = null;
                 if (copy != null)
                 {
-                    var type = copy.ConstructorArguments.First().Value as NamedTypeSymbol;
+                    type = copy.ConstructorArguments.First().Value as NamedTypeSymbol;
+                }
+                */
+
+                if (type != null)
+                {
                     var code = type.DeclaringSyntaxNodes.First();
 
-                    var output = code.ToFullString().Replace(type.Name, symbol.Name);
+                    var output = code.ToFullString().Replace(type.Name, class_symbol.Name);
                     
-                    writer.WriteLine("namespace {0}", symbol.ContainingNamespace);
+                    writer.WriteLine("namespace {0}", class_symbol.ContainingNamespace);
                     writer.Write("{");
                     writer.Write(output);
                     writer.WriteLine("}");
@@ -422,8 +446,44 @@ using FragSharpFramework;
                 }
             }
 
+            var text = writer.ToString();
+            string path = Path.Combine(BuildPaths.BoilerRoot, ExtensionFileName);
+
+            try
+            {
+                if (text.GetHashCode() == File.ReadAllText(path).GetHashCode())
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+            }
+
             Directory.CreateDirectory(BuildPaths.BoilerRoot);
-            File.WriteAllText(Path.Combine(BuildPaths.BoilerRoot, ExtensionFileName), writer.ToString());
+            File.WriteAllText(path, writer.ToString());
+            return true;
+        }
+
+        private static AttributeSyntax GetCopyAttribute(TypeDeclarationSyntax _class)
+        {
+            //var nodes = _class.DeclaringSyntaxNodes[0];
+            foreach (var node in _class.ChildNodes())
+            {
+                var attribute_node = node as AttributeListSyntax;
+                if (null != attribute_node)
+                {
+                    foreach (var attribute in attribute_node.Attributes)
+                    {
+                        if (attribute.Name.ToString() == "Copy")
+                        {
+                            return attribute;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         static void ParseArgs(string[] args)
@@ -434,7 +494,7 @@ using FragSharpFramework;
                 Console.WriteLine("Defaulting to debug directories.");
 
                 ParseArgs(new string[] {
-                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim",
+                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/GpuSim.csproj",
                     /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/bin/x86/Debug/" });
             }
             else
@@ -451,10 +511,11 @@ using FragSharpFramework;
             CompileUserCode();
 
             // Create __ExtensionBoilerplate.cs
-            CreateExtensionBoilerplate(Models, Nodes);
+            bool changed = CreateExtensionBoilerplate(Models, Nodes);
             
             // Recompile
-            CompileUserCode();
+            if (changed)
+                CompileUserCode();
 
             // Create translation lookup
             TranslationLookup.ProcessTypes(Models, Nodes);
@@ -559,10 +620,14 @@ using FragSharpFramework;
 
         static void CompileUserCode()
         {
+            //var sln = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, "Debug").Solution;
+            //sln.Projects.First().GetCompilation();
+            //foreach (var doc in sln.Projects.First().DocumentIds)
+            //    sln = sln.ReloadDocument(doc);
+            //sln.Projects.First().GetCompilation();
+
             // Get all the relevant source files
-            //var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
-            //files.AddRange(Directory.GetFiles("FragSharpFramework",  "*.cs", SearchOption.AllDirectories).ToList());
-            var files = Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
+            var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
             files.AddRange(Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories).ToList());
 
             // Get all the syntax trees from the source files
@@ -583,8 +648,6 @@ using FragSharpFramework;
                                              syntaxTrees: Trees,
                                              references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
 
-            var Tree = Trees[0];
-            var Root = Tree.GetRoot();
             Models = new Dictionary<SyntaxTree, SemanticModel>();
             foreach (var tree in Trees)
             {
