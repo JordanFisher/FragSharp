@@ -113,6 +113,8 @@ namespace FragSharp
             return GetString();
         }
 
+        const string ApplyName = "Apply", UsingName = "Using";
+
         void WriteBoilerplateClass(NamedTypeSymbol symbol)
         {
             WriteLine("public partial class {0}", symbol.Name);
@@ -123,47 +125,49 @@ namespace FragSharp
             WriteLine("public static Effect CompiledEffect;");
             WriteLine();
 
-            WriteBoilerplateUseFuncSignature(true);
-            WriteBoilerplateUseFuncOverload();
-            WriteBoilerplateUseFuncSignature(false);
-            WriteBoilerplateUseFunc();
+            WriteBoilerplateSignature(ApplyName, "RenderTarget2D Output, Color Clear");
+            WriteBoilerplateApplyFunc("Output", "Clear");
+            WriteBoilerplateSignature(ApplyName, "RenderTarget2D Output");
+            WriteBoilerplateApplyFunc("Output", "Color.Transparent");
+
+            WriteBoilerplateSignature(UsingName, "RenderTarget2D Output, Color Clear");
+            WriteBoilerplateUsingFuncOverload("Output", "Clear");
+            WriteBoilerplateSignature(UsingName, "RenderTarget2D Output");
+            WriteBoilerplateUsingFuncOverload("Output", "Color.Transparent");
+
+            WriteBoilerplateSignature(UsingName);
+            WriteBoilerplateUsingFunc();
 
             RestoreIndent(PrevIndent);
 
             WriteLine("}");    
         }
 
-        void WriteBoilerplateUseFuncSignature(bool WithOutputParam)
+        void WriteBoilerplateSignature(string FunctionName, string ExtraParams = null)
         {
-            BeginLine("public static void Use(");
+            BeginLine("public static void {0}(", FunctionName);
 
             foreach (var param in Params)
             {
                 Write("{0} {1}", param.TypeName, param.Name);
 
-                if (WithOutputParam || param != Params.Last())
+                if (ExtraParams != null || param != Params.Last())
                 {
                     Write(",{0}", Space);
                 }
             }
 
-            if (WithOutputParam)
+            if (ExtraParams != null)
             {
-                Write("RenderTarget2D Output");
+                Write(ExtraParams);
             }
 
             EndLine(")");
         }
 
-        void WriteBoilerplateUseFuncOverload()
+        void WriteInvokeUsing()
         {
-            WriteLine("{");
-            var PrevIndent = Indent();
-
-            WriteLine("GridHelper.GraphicsDevice.SetRenderTarget(Output);");
-            WriteLine("GridHelper.GraphicsDevice.Clear(Color.Transparent);");
-
-            BeginLine("Use(");
+            BeginLine("{0}(", UsingName);
 
             foreach (var param in Params)
             {
@@ -176,6 +180,16 @@ namespace FragSharp
             }
 
             EndLine(");");
+        }
+
+        void WriteBoilerplateApplyFunc(string SetRenderTarget, string ClearTarget)
+        {
+            WriteLine("{");
+            var PrevIndent = Indent();
+
+            CodeFor_SetRender_Clear(SetRenderTarget, ClearTarget);
+
+            WriteInvokeUsing();
 
             WriteLine("GridHelper.DrawGrid();");
 
@@ -183,7 +197,29 @@ namespace FragSharp
             WriteLine("}");    
         }
 
-        void WriteBoilerplateUseFunc()
+        private void CodeFor_SetRender_Clear(string SetRenderTarget, string ClearTarget)
+        {
+            if (SetRenderTarget != null)
+                WriteLine("GridHelper.GraphicsDevice.SetRenderTarget({0});", SetRenderTarget);
+
+            if (ClearTarget != null)
+                WriteLine("GridHelper.GraphicsDevice.Clear({0});", ClearTarget);
+        }
+
+        void WriteBoilerplateUsingFuncOverload(string SetRenderTarget, string ClearTarget)
+        {
+            WriteLine("{");
+            var PrevIndent = Indent();
+
+            CodeFor_SetRender_Clear(SetRenderTarget, ClearTarget);
+
+            WriteInvokeUsing();
+
+            RestoreIndent(PrevIndent);
+            WriteLine("}");
+        }
+
+        void WriteBoilerplateUsingFunc()
         {
             WriteLine("{");
             var PrevIndent = Indent();

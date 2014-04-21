@@ -9,6 +9,11 @@ namespace FragSharpFramework
 {
     public static class FragSharpMarshal
     {
+        public static bool Marshal(bool val)
+        {
+            return val;
+        }
+
         public static float Marshal(float val)
         {
             return val;
@@ -25,6 +30,11 @@ namespace FragSharpFramework
         }
 
         public static Vector4 Marshal(vec4 v)
+        {
+            return (Vector4)v;
+        }
+
+        public static Vector4 Marshal(color v)
         {
             return (Vector4)v;
         }

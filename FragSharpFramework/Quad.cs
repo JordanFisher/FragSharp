@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace FragSharpFramework
 {
-    public class Quad
+    public class RectangleQuad
     {
         VertexPositionColorTexture[] vertexData;
 
@@ -21,7 +21,12 @@ namespace FragSharpFramework
             TOP_LEFT, TOP_RIGHT,    BOTTOM_RIGHT,
         };
 
-        public Quad(vec2 PositionBl, vec2 PositionTr, vec2 UvBl, vec2 UvTr)
+        public RectangleQuad()
+        {
+            SetupVertices(-vec2.Ones, vec2.Ones, vec2.Zero, vec2.Ones);
+        }
+
+        public RectangleQuad(vec2 PositionBl, vec2 PositionTr, vec2 UvBl, vec2 UvTr)
         {
             SetupVertices(PositionBl, PositionTr, UvBl, UvTr);
         }
@@ -50,6 +55,13 @@ namespace FragSharpFramework
         public void Draw(GraphicsDevice GraphicsDevice)
         {
             GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertexData, 0, 4, indexData, 0, 2);
+        }
+
+        static RectangleQuad ScratchQuad = new RectangleQuad();
+        public static void Draw(GraphicsDevice GraphicsDevice, vec2 pos, vec2 size)
+        {
+            ScratchQuad.SetupVertices(pos - size, pos + size, vec2.Zero, vec2.Ones);
+            ScratchQuad.Draw(GraphicsDevice);
         }
     }
 }

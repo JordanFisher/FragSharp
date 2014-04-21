@@ -11,7 +11,7 @@ namespace FragSharpFramework
     {
         public static GraphicsDevice GraphicsDevice;
 
-        static Quad UnitSquare = new Quad(new vec2(-1, -1), new vec2(1, 1), new vec2(0, 0), new vec2(1, 1));
+        static RectangleQuad UnitSquare = new RectangleQuad(new vec2(-1, -1), new vec2(1, 1), new vec2(0, 0), new vec2(1, 1));
 
         public static void Initialize(GraphicsDevice GraphicsDevice)
         {

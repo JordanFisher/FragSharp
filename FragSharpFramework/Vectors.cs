@@ -75,6 +75,11 @@ namespace FragSharpFramework
             return new vec2(v.x / w.x, v.y / w.y);
         }
 
+        public static vec2 operator -(vec2 v)
+        {
+            return new vec2(-v.x, -v.y);
+        }
+
         public static implicit operator Vector2(vec2 v)
         {
             return new Vector2(v.x, v.y);
@@ -86,6 +91,7 @@ namespace FragSharpFramework
         }
 
         public static readonly vec2 Zero = new vec2(0, 0);
+        public static readonly vec2 Ones = new vec2(1, 1);
     }
 
     [Hlsl("float3")]
@@ -208,6 +214,29 @@ namespace FragSharpFramework
             return new vec4(v.x / w.x, v.y / w.y, v.z / w.z, v.w / w.w);
         }
 
+        public static bool operator ==(vec4 v, vec4 w)
+        {
+            return
+                v.x == w.x &&
+                v.y == w.y &&
+                v.z == w.z &&
+                v.w == w.w;
+        }
+
+        public static bool operator !=(vec4 v, vec4 w)
+        {
+            return
+                v.x != w.x ||
+                v.y != w.y ||
+                v.z != w.z ||
+                v.w != w.w;
+        }
+
+        public static vec4 operator -(vec4 v)
+        {
+            return new vec4(-v.x, -v.y, -v.z, -v.w);
+        }
+
         public static implicit operator Vector4(vec4 v)
         {
             return new Vector4(v.x, v.y, v.z, v.w);
@@ -303,6 +332,24 @@ namespace FragSharpFramework
         public static color operator /(color v, color w)
         {
             return new color(v.x / w.x, v.y / w.y, v.z / w.z, v.w / w.w);
+        }
+
+        public static bool operator ==(color v, color w)
+        {
+            return
+                v.x == w.x &&
+                v.y == w.y &&
+                v.z == w.z &&
+                v.w == w.w;
+        }
+
+        public static bool operator !=(color v, color w)
+        {
+            return
+                v.x != w.x ||
+                v.y != w.y ||
+                v.z != w.z ||
+                v.w != w.w;
         }
 
         public static implicit operator Vector4(color v)
