@@ -62,8 +62,7 @@ namespace FragSharp
 
         protected void CompileMemberAccessExpression(MemberAccessExpressionSyntax expression)
         {
-            var member_info = GetModel(expression.Name).GetSymbolInfo(expression.Name);
-            var member = member_info.Symbol;
+            var member = GetSymbol(expression.Name);
 
             // If this member has a translation
             if (TranslationLookup.SymbolMap.ContainsKey(member))
@@ -96,11 +95,21 @@ namespace FragSharp
                 {
                     CompileLiteral(const_val.Value);
                 }
+                else if (ReferencedMethods.Contains(member) && member is MethodSymbol)
+                {
+                    WriteFullMethodName((MethodSymbol)member);
+                }
                 else
                 {
                     Write("ERROR(MemberAccess: {0})", expression);
                 }
             }
+        }
+
+        protected void WriteFullMethodName(MethodSymbol method)
+        {
+            string name = method.ContainingNamespace.Name + "__" + method.ContainingType.Name + "__" + method.Name;
+            Write(name.Replace(".", "__"));
         }
 
         protected Dictionary<Symbol, CompiledMethod> SymbolCompilation;
@@ -320,9 +329,15 @@ namespace FragSharp
 
         protected bool IsSampler(SyntaxNode param) { return IsSamplerType(GetType(GetSymbol(param))); }
 
-        protected bool IsSamplerType(Symbol symbol)
+        protected bool IsSamplerType(TypeSymbol symbol)
         {
-            return symbol != null && TranslationLookup.SymbolMap.ContainsKey(symbol) && TranslationLookup.SymbolMap[symbol].Translation == "sampler";
+            if (symbol == null) return false;
+
+            var info = TranslationLookup.RecursiveLookup(symbol);
+            if (info.Translation == "sampler") return true;
+
+            return false;
+            //return symbol != null && TranslationLookup.SymbolMap.ContainsKey(symbol) && TranslationLookup.SymbolMap[symbol].Translation == "sampler";
         }
 
         protected TypeSymbol GetType(Symbol symbol)
@@ -349,8 +364,8 @@ namespace FragSharp
 
             if      (syntax is ArgumentSyntax)               return m.GetSymbolInfo    (((ArgumentSyntax)syntax).Expression).Symbol;
             else if (syntax is ParameterSyntax)              return m.GetDeclaredSymbol((ParameterSyntax)syntax);
-            //else if (syntax is IdentifierNameSyntax)         return m.GetSymbolInfo(((IdentifierNameSyntax)syntax).Identifier);
-            //else if (syntax is MemberAccessExpressionSyntax) return m.GetSymbolInfo(((MemberAccessExpressionSyntax)syntax).Name);
+            else if (syntax is ExpressionSyntax)             return m.GetSymbolInfo((ExpressionSyntax)syntax).Symbol;
+            else if (syntax is BaseMethodDeclarationSyntax)  return m.GetDeclaredSymbol((BaseMethodDeclarationSyntax)syntax);
             else throw new Exception("Code stub! Fix me please!");
         }
 

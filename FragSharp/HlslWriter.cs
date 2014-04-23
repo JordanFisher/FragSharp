@@ -111,34 +111,82 @@ namespace FragSharp
             }
         }
 
+        int hex(char c)
+        {
+            int dec = (int)c - (int)'0';
+            if (dec <= 9 && dec >= 0) return dec;
+            int hex = (int)c - (int)'a';
+            if (hex < 6  && hex >= 0) return hex + 10;
+            
+            hex = (int)c - (int)'A';
+            if (hex < 6  && hex >= 0) return hex + 10;
+
+            throw new Exception("Improper hexadecimal literal. Should be of form 0x8a7b81 or 0x8A7B81.");
+        }
+
+
+        string HexToVec4(string s)
+        {
+            float r = (16 * hex(s[2]) + hex(s[3])) / 255f;
+            float g = (16 * hex(s[4]) + hex(s[5])) / 255f;
+            float b = (16 * hex(s[6]) + hex(s[7])) / 255f;
+
+            return string.Format("{0}, {1}, {2}", r, g, b);
+        }
+
         override protected void CompileInvocationExpression(InvocationExpressionSyntax expression)
         {
-            var info = GetModel(expression.Expression).GetSymbolInfo(expression.Expression);
+            var symbol = GetSymbol(expression.Expression);
 
-            var symbol = info.Symbol;
             if (symbol != null)
             {
-                // If the function has a tranlsation, use that tranlsation
-                if (TranslationLookup.SymbolMap.ContainsKey(symbol))
+                var special = symbol.GetAttribute("Special");
+
+                if (special != null)
                 {
+                    var name = (Special)special.ConstructorArguments.First().Value;
+
+                    switch (name)
+                    {
+                        case Special.rgba_hex:
+                            // If the funciton has a special compilation, do that special compilation.
+                            var hex_literal = expression.ArgumentList.Arguments[0].Expression as LiteralExpressionSyntax;
+                            var float_literal = expression.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax;
+                            Write("float4({0}, {1})", HexToVec4(hex_literal.ToString()), float_literal.ToString());
+                            break;
+
+                        case Special.rgb_hex:
+                            // If the funciton has a special compilation, do that special compilation.
+                            var _hex_literal = expression.ArgumentList.Arguments[0].Expression as LiteralExpressionSyntax;
+                            Write("float4({0}, 1.0)", HexToVec4(_hex_literal.ToString()));
+                            break;
+                    }
+                }
+                else if (TranslationLookup.SymbolMap.ContainsKey(symbol))
+                {
+                    // If the function has a tranlsation, use that tranlsation
                     var translation_info = TranslationLookup.SymbolMap[symbol];
                     Write(translation_info.Translation);
+
+                    Write("(");
+                    CompileArgumentList(expression.ArgumentList);
+                    Write(")");
                 }
                 else
                 {
                     // Otherwise compile the function and note that we are using it.
                     var writer = new HlslWriter(this);
-                    writer.CompileMethod(info.Symbol);
+                    writer.CompileMethod(symbol);
 
-                    ReferencedMethods.AddUnique(SymbolCompilation[info.Symbol].ReferencedMethods);
-                    ReferencedMethods.AddUnique(info.Symbol);
+                    ReferencedMethods.AddUnique(SymbolCompilation[symbol].ReferencedMethods);
+                    ReferencedMethods.AddUnique(symbol);
 
                     CompileExpression(expression.Expression);
-                }
 
-                Write("(");
-                CompileArgumentList(expression.ArgumentList);
-                Write(")");
+                    Write("(");
+                    CompileArgumentList(expression.ArgumentList);
+                    Write(")");
+                }
             }
             else
             {
@@ -183,7 +231,11 @@ namespace FragSharp
                 {
                     if (ReferencedMethods.Contains(symbol))
                     {
-                        Write(symbol.Name);
+                        var method = symbol as MethodSymbol;
+                        if (null != method)
+                            WriteFullMethodName(method);
+                        else
+                            Write(symbol.Name);
                     }
                     else
                     {

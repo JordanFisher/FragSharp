@@ -17,6 +17,66 @@ namespace FragSharpFramework
 
         [Hlsl("float2")]
         public RelativeIndex(float i, float j) { this.i = i; this.j = j; }
+
+        public static RelativeIndex operator *(float a, RelativeIndex v)
+        {
+            return new RelativeIndex(a * v.i, a * v.j);
+        }
+
+        public static RelativeIndex operator *(RelativeIndex v, float a)
+        {
+            return new RelativeIndex(a * v.i, a * v.j);
+        }
+
+        public static RelativeIndex operator /(float a, RelativeIndex v)
+        {
+            return new RelativeIndex(a / v.i, a / v.j);
+        }
+
+        public static RelativeIndex operator /(RelativeIndex v, float a)
+        {
+            return new RelativeIndex(v.i / a, v.j / a);
+        }
+
+        public static RelativeIndex operator +(RelativeIndex v, RelativeIndex w)
+        {
+            return new RelativeIndex(v.i + w.i, v.j + w.j);
+        }
+
+        public static RelativeIndex operator -(RelativeIndex v, RelativeIndex w)
+        {
+            return new RelativeIndex(v.i - w.i, v.j - w.j);
+        }
+
+        public static RelativeIndex operator *(RelativeIndex v, RelativeIndex w)
+        {
+            return new RelativeIndex(v.i * w.i, v.j * w.j);
+        }
+
+        public static RelativeIndex operator /(RelativeIndex v, RelativeIndex w)
+        {
+            return new RelativeIndex(v.i / w.i, v.j / w.j);
+        }
+
+        public static RelativeIndex operator -(RelativeIndex v)
+        {
+            return new RelativeIndex(-v.i, -v.j);
+        }
+
+        public static implicit operator Vector2(RelativeIndex v)
+        {
+            return new Vector2(v.i, v.j);
+        }
+
+        public static explicit operator RelativeIndex(vec2 v)
+        {
+            return new RelativeIndex(v.x, v.y);
+        }
+
+        public static explicit operator RelativeIndex(Vector2 v)
+        {
+            return new RelativeIndex(v.X, v.Y);
+        }
     }
 
     [Hlsl("float2")]
@@ -34,6 +94,11 @@ namespace FragSharpFramework
 
         [Hlsl("y")]
         public float y;
+
+        public override string ToString()
+        {
+            return string.Format("{0}, {1}", x, y);
+        }
 
         public static vec2 operator *(float a, vec2 v)
         {

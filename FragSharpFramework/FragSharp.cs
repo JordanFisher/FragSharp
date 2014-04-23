@@ -21,6 +21,14 @@ namespace FragSharpFramework
             _( bool _) {}
     }
 
+    public class PointSampler : Sampler
+    {
+    }
+
+    public class LinearSampler : Sampler
+    {
+    }
+
     [Hlsl("sampler")]
     public class Sampler : FragSharpStd
     {
@@ -130,6 +138,18 @@ namespace FragSharpFramework
 
         [Hlsl("float4")]
         protected static color rgba(float x, float y, float z, float w) { return new color(x, y, z, w); }
+
+        [Special(Special.rgba_hex)]
+        protected static color rgba(int hex, float a)
+        {
+            return rgba(0, 0, 0, a);
+        }
+
+        [Special(Special.rgb_hex)]
+        protected static color rgb(int hex)
+        {
+            return rgba(0, 0, 0, 1);
+        }
 
         protected const float _0 = 0 / 255f, _1 = 1 / 255f, _2 = 2 / 255f, _3 = 3 / 255f, _4 = 4 / 255f, _5 = 5 / 255f, _6 = 6 / 255f, _7 = 7 / 255f, _8 = 8 / 255f, _9 = 9 / 255f, _10 = 10 / 255f, _11 = 11 / 255f, _12 = 12 / 255f;
 

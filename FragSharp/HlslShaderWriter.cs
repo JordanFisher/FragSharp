@@ -378,7 +378,7 @@ namespace FragSharp
                 {
                     if (translation_info.Translation == "sampler")
                     {
-                        CompileSamplerParameter(parameter);
+                        CompileSamplerParameter(parameter, symbol);
                     }
                     else
                     {
@@ -397,14 +397,16 @@ namespace FragSharp
             }
         }
 
-        void CompileSamplerParameter(ParameterSyntax parameter)
+        void CompileSamplerParameter(ParameterSyntax parameter, TypeSymbol symbol)
         {
             SamplerNumber++;
 
             string name = parameter.Identifier.ValueText;
             string mapped_name = FragmentShaderParameterPrefix + name;
 
-            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name);
+            string filter = symbol.DerivesFrom("LinearShader") ? "Linear" : "Point";
+
+            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name, filter);
 
             Params.Add(new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam));
         }
@@ -418,11 +420,11 @@ Texture {2}_Texture;
 sampler {2} : register(s{1}) = sampler_state
 {{
 {0}texture   = <{2}_Texture>;
-{0}MipFilter = Point;
-{0}MagFilter = Point;
-{0}MinFilter = Point;
-{0}AddressU  = Wrap;
-{0}AddressV  = Wrap;
+{0}MipFilter = {3};
+{0}MagFilter = {3};
+{0}MinFilter = {3};
+{0}AddressU  = Clamp;
+{0}AddressV  = Clamp;
 }};";
 
 const string ReferencedMethodsPreamble =

@@ -75,8 +75,14 @@ namespace FragSharp
 
         override protected void CompileMethodSignature(MethodDeclarationSyntax method)
         {
+            var symbol = GetSymbol(method) as MethodSymbol;
+
             CompileExpression(method.ReturnType);
-            Write(" {0}", method.Identifier.ValueText);
+
+            Write(" ");
+            WriteFullMethodName(symbol);
+            //Write(" {0}", method.Identifier.ValueText);
+            
             Write("(");
 
             var Params = method.ParameterList.Parameters;

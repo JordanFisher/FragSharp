@@ -58,16 +58,6 @@ namespace FragSharp
             return new MapInfo(null);
         }
 
-        static AttributeData GetHlslAttribute(Symbol symbol)
-        {
-            var attributes = symbol.GetAttributes();
-            if (attributes.Count == 0) return null;
-
-            var attribute = attributes.FirstOrDefault(data => data.AttributeClass.Name == "HlslAttribute");
-
-            return attribute;
-        }
-
         static void ProcessAccessor(TypeDeclarationSyntax type, AccessorDeclarationSyntax accessor)
         {
             Console.Write(0);
@@ -79,10 +69,10 @@ namespace FragSharp
 
             foreach (var member in members)
             {
-                var attribute = GetHlslAttribute(member);
+                var attribute = member.GetAttribute("Hlsl");
                 if (attribute != null)
                 {
-                    // Get single argument to this function. It was serve as the key in the map.
+                    // Get single argument to this function. It will serve as the key in the map.
                     var method = member as MethodSymbol;
                     if (null != method)
                     {
@@ -109,7 +99,7 @@ namespace FragSharp
                     continue;
                 }
 
-                var attribute = GetHlslAttribute(symbol);
+                var attribute = symbol.GetAttribute("Hlsl");
 
                 if (attribute != null)
                 {
@@ -154,7 +144,7 @@ namespace FragSharp
                 {
                     if (member is NamedTypeSymbol) continue; // Skip nested type defintions. We alraedy processed all types.
 
-                    var attribute = GetHlslAttribute(member);
+                    var attribute = member.GetAttribute("Hlsl");
                     if (attribute != null)
                     {
                         CreateMapEntry(member, attribute);
