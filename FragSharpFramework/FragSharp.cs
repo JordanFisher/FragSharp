@@ -202,5 +202,11 @@ namespace FragSharpFramework
         {
             return (float)Math.Abs((float)angle);
         }
+
+        [Hlsl("atan2")]
+        protected static float atan(float y, float x)
+        {
+            return (float)Math.Atan2(y, x);
+        }
     }
 }

@@ -54,6 +54,11 @@ namespace FragSharp.Build
         };
 
 
+        //public void Save()
+        //{
+        //    buildProject.Save("C://Users//Jordan//Desktop//save.csproj");
+        //}
+
         // MSBuild objects used to dynamically build content.
         Project buildProject;
         ProjectRootElement projectRootElement;

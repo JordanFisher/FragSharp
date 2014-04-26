@@ -222,6 +222,9 @@ namespace FragSharpFramework
         [Hlsl("xy")]
         public vec2 xy { get { return new vec2(x, y); } set { x = value.x; y = value.y; } }
 
+        [Hlsl("zw")]
+        public vec2 zw { get { return new vec2(z, w); } set { z = value.x; w = value.y; } }
+
         [Hlsl("xyz")]
         public vec3 xyz { get { return new vec3(x, y, z); } set { x = value.x; y = value.y; z = value.z; } }
 
@@ -237,7 +240,15 @@ namespace FragSharpFramework
         [Hlsl("a")]
         public float a { get { return w; } set { w = value; } }
 
+        [Hlsl("rgb")]
         public vec3 rgb { get { return xyz; } set { xyz = value; } }
+
+        [Hlsl("rg")]
+        public vec2 rg { get { return xy; } set { xy = value; } }
+
+        [Hlsl("ba")]
+        public vec2 ba { get { return zw; } set { zw = value; } }
+
 
         public static vec4 operator *(float a, vec4 v)
         {

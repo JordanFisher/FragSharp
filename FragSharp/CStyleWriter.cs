@@ -178,14 +178,20 @@ namespace FragSharp
 
         protected override void CompilePrefixUnaryExpression(PrefixUnaryExpressionSyntax expression)
         {
-            if (expression.OperatorToken.ValueText == "-")
+            string op = expression.OperatorToken.ValueText;
+            switch (op)
             {
-                Write(expression.OperatorToken);
-                CompileExpression(expression.Operand);
-            }
-            else
-            {
-                Write("ERROR(Unsupported unary expression: {0})", expression);
+                case "!":
+                case "-":
+                    Write(expression.OperatorToken);
+                    Write("(");
+                    CompileExpression(expression.Operand);
+                    Write(")");
+                    break;
+                
+                default:
+                    Write("ERROR(Unsupported unary expression: {0})", expression);
+                    break;
             }
         }
 
