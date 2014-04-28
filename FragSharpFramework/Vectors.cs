@@ -318,6 +318,16 @@ namespace FragSharpFramework
             return new Vector4(v.x, v.y, v.z, v.w);
         }
 
+        public static implicit operator vec4(color v)
+        {
+            return new vec4(v.x, v.y, v.z, v.w);
+        }
+
+        public static implicit operator color(vec4 v)
+        {
+            return new color(v.x, v.y, v.z, v.w);
+        }
+
         public static explicit operator vec4(Vector4 v)
         {
             return new vec4(v.X, v.Y, v.Z, v.W);
@@ -338,6 +348,14 @@ namespace FragSharpFramework
             this.w = w;
         }
 
+        public color(byte x, byte y, byte z, byte w)
+        {
+            this.x = ((float)x) / 256.0f;
+            this.y = ((float)y) / 256.0f;
+            this.z = ((float)z) / 256.0f;
+            this.w = ((float)w) / 256.0f;
+        }
+
         [Hlsl("x")]
         public float x;
 
@@ -352,6 +370,9 @@ namespace FragSharpFramework
 
         [Hlsl("xy")]
         public vec2 xy { get { return new vec2(x, y); } set { x = value.x; y = value.y; } }
+
+        [Hlsl("zw")]
+        public vec2 zw { get { return new vec2(z, w); } set { z = value.x; w = value.y; } }
 
         [Hlsl("xyz")]
         public vec3 xyz { get { return new vec3(x, y, z); } set { x = value.x; y = value.y; z = value.z; } }
@@ -368,7 +389,15 @@ namespace FragSharpFramework
         [Hlsl("a")]
         public float a { get { return w; } set { w = value; } }
 
+        [Hlsl("rgb")]
         public vec3 rgb { get { return xyz; } set { xyz = value; } }
+
+        [Hlsl("rg")]
+        public vec2 rg { get { return xy; } set { xy = value; } }
+
+        [Hlsl("ba")]
+        public vec2 ba { get { return zw; } set { zw = value; } }
+
 
         public static color operator *(float a, color v)
         {
@@ -442,7 +471,7 @@ namespace FragSharpFramework
 
         // -------------------------------------------------------------------
 
-        public static readonly color TransparentBlack = new color(0, 0, 0, 0);
+        public static readonly color TransparentBlack = new color(0f, 0f, 0f, 0f);
 
         public static explicit operator color(Color v)
         {

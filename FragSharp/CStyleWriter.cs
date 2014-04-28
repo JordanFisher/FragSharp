@@ -238,6 +238,19 @@ namespace FragSharp
 
         override protected void CompileCastExpression(CastExpressionSyntax expression)
         {
+            try
+            {
+                // If we are typecasting to what the type is already being mapped to, then we can discard the cast.
+                if (TranslationLookup.SymbolMap[GetSymbol(expression.Type)].Translation == TranslationLookup.SymbolMap[GetType(GetSymbol(expression.Expression))].Translation)
+                {
+                    CompileExpression(expression.Expression);
+                    return;
+                }
+            }
+            catch
+            {
+            }
+
             EncloseInParanthesis(expression.Type);
 
             CompileExpression(expression.Expression);

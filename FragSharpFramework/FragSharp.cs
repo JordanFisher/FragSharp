@@ -208,5 +208,37 @@ namespace FragSharpFramework
         {
             return (float)Math.Atan2(y, x);
         }
+
+        [Hlsl("max")]
+        protected static float max(float a, float b)
+        {
+            return (float)Math.Max(a, b);
+        }
+
+        protected static float max(float a, float b, float c)
+        {
+            return max(max(a, b), c);
+        }
+
+        protected static float max(float a, float b, float c, float d)
+        {
+            return max(max(a,b), max(c,d));
+        }
+
+        [Hlsl("min")]
+        protected static float min(float a, float b)
+        {
+            return (float)Math.Max(a, b);
+        }
+
+        protected static float min(float a, float b, float c)
+        {
+            return min(min(a, b), c);
+        }
+
+        protected static float min(float a, float b, float c, float d)
+        {
+            return min(min(a, b), min(c, d));
+        }
     }
 }
