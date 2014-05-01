@@ -369,25 +369,33 @@ namespace FragSharp
 
         override protected void CompileBinaryExpression(BinaryExpressionSyntax expression)
         {
-            if (expression.OperatorToken.ValueText == "==")
+            switch (expression.OperatorToken.ValueText)
             {
-                Write("abs(");
-                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
-                CompileExpression(expression.Left);
-                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
-                Write("{0}-{0}", Space);
-                CompileExpression(expression.Right);
-                Write(") < .001");
-            }
-            else
-            {
-                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
-                CompileExpression(expression.Left);
-                if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
+                case "==":
+                    Write("abs(");
+                    CompileExpression(expression.Left);
+                    Write("{0}-{0}", Space);
+                    CompileExpression(expression.Right);
+                    Write(") < .001");
+                    break;
 
-                Write("{1}{0}{1}", expression.OperatorToken, Space);
+                case "!=":
+                    Write("abs(");
+                    CompileExpression(expression.Left);
+                    Write("{0}-{0}", Space);
+                    CompileExpression(expression.Right);
+                    Write(") > .001");
+                    break;
 
-                CompileExpression(expression.Right);
+                default:
+                    if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
+                    CompileExpression(expression.Left);
+                    if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
+
+                    Write("{1}{0}{1}", expression.OperatorToken, Space);
+
+                    CompileExpression(expression.Right);
+                    break;
             }
         }
     }

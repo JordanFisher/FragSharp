@@ -182,6 +182,67 @@ namespace FragSharpFramework
         [Hlsl("xy")]
         public vec2 xy { get { return new vec2(x, y); } set { x = value.x; y = value.y; } }
 
+        public static vec3 operator *(float a, vec3 v)
+        {
+            return new vec3(a * v.x, a * v.y, a * v.z);
+        }
+
+        public static vec3 operator *(vec3 v, float a)
+        {
+            return new vec3(a * v.x, a * v.y, a * v.z);
+        }
+
+        public static vec3 operator /(float a, vec3 v)
+        {
+            return new vec3(a / v.x, a / v.y, a / v.z);
+        }
+
+        public static vec3 operator /(vec3 v, float a)
+        {
+            return new vec3(v.x / a, v.y / a, v.z / a);
+        }
+
+        public static vec3 operator +(vec3 v, vec3 w)
+        {
+            return new vec3(v.x + w.x, v.y + w.y, v.z + w.z);
+        }
+
+        public static vec3 operator -(vec3 v, vec3 w)
+        {
+            return new vec3(v.x - w.x, v.y - w.y, v.z - w.z);
+        }
+
+        public static vec3 operator *(vec3 v, vec3 w)
+        {
+            return new vec3(v.x * w.x, v.y * w.y, v.z * w.z);
+        }
+
+        public static vec3 operator /(vec3 v, vec3 w)
+        {
+            return new vec3(v.x / w.x, v.y / w.y, v.z / w.z);
+        }
+
+        public static bool operator ==(vec3 v, vec3 w)
+        {
+            return
+                v.x == w.x &&
+                v.y == w.y &&
+                v.z == w.z;
+        }
+
+        public static bool operator !=(vec3 v, vec3 w)
+        {
+            return
+                v.x != w.x ||
+                v.y != w.y ||
+                v.z != w.z;
+        }
+
+        public static vec3 operator -(vec3 v)
+        {
+            return new vec3(-v.x, -v.y, -v.z);
+        }
+
         public static implicit operator Vector3(vec3 v)
         {
             return new Vector3(v.x, v.y, v.z);
@@ -467,7 +528,7 @@ namespace FragSharpFramework
             return new color(v.X, v.Y, v.Z, v.W);
         }
 
-        public static readonly color Zero = new color(0, 0, 0, 0);
+        public static readonly color Zero = new color(0f, 0f, 0f, 0f);
 
         // -------------------------------------------------------------------
 
