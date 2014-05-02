@@ -179,11 +179,29 @@ namespace FragSharpFramework
             return (float)Math.Floor(value);
         }
 
+        [Hlsl("floor")] protected static vec2 floor(vec2 v) { return vec(floor(v.x), floor(v.y)); }
+        [Hlsl("floor")] protected static vec3 floor(vec3 v) { return vec(floor(v.x), floor(v.y), floor(v.z)); }
+        [Hlsl("floor")] protected static vec4 floor(vec4 v) { return vec(floor(v.x), floor(v.y), floor(v.z), floor(v.w)); }
+
+
         [Hlsl("length")]
         protected static float length(vec2 v)
         {
             return (float)Math.Sqrt(v.x * v.x + v.y * v.y);
         }
+
+        [Hlsl("length")]
+        protected static float length(vec3 v)
+        {
+            return (float)Math.Sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        }
+
+        [Hlsl("length")]
+        protected static float length(vec4 v)
+        {
+            return (float)Math.Sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
+        }
+
 
         [Hlsl("cos")]
         protected static float cos(float angle)
@@ -191,11 +209,21 @@ namespace FragSharpFramework
             return (float)Math.Cos((float)angle);
         }
 
+        [Hlsl("cos")] protected static vec2 cos(vec2 v) { return vec(cos(v.x), cos(v.y)); }
+        [Hlsl("cos")] protected static vec3 cos(vec3 v) { return vec(cos(v.x), cos(v.y), cos(v.z)); }
+        [Hlsl("cos")] protected static vec4 cos(vec4 v) { return vec(cos(v.x), cos(v.y), cos(v.z), cos(v.w)); }
+
+
         [Hlsl("sin")]
         protected static float sin(float angle)
         {
             return (float)Math.Sin((float)angle);
         }
+
+        [Hlsl("sin")] protected static vec2 sin(vec2 v) { return vec(sin(v.x), sin(v.y)); }
+        [Hlsl("sin")] protected static vec3 sin(vec3 v) { return vec(sin(v.x), sin(v.y), sin(v.z)); }
+        [Hlsl("sin")] protected static vec4 sin(vec4 v) { return vec(sin(v.x), sin(v.y), sin(v.z), sin(v.w)); }
+
 
         [Hlsl("abs")]
         protected static float abs(float angle)
@@ -203,11 +231,21 @@ namespace FragSharpFramework
             return (float)Math.Abs((float)angle);
         }
 
+        [Hlsl("abs")] protected static vec2 abs(vec2 v) { return vec(abs(v.x), abs(v.y)); }
+        [Hlsl("abs")] protected static vec3 abs(vec3 v) { return vec(abs(v.x), abs(v.y), abs(v.z)); }
+        [Hlsl("abs")] protected static vec4 abs(vec4 v) { return vec(abs(v.x), abs(v.y), abs(v.z), abs(v.w)); }
+
+
         [Hlsl("atan2")]
         protected static float atan(float y, float x)
         {
             return (float)Math.Atan2(y, x);
         }
+
+        [Hlsl("atan2")] protected static vec2 atan2(vec2 y, vec2 x) { return vec(atan(y.x, x.x), atan(y.y, x.y)); }
+        [Hlsl("atan2")] protected static vec3 atan2(vec3 y, vec3 x) { return vec(atan(y.x, x.x), atan(y.y, x.y), atan(y.z, x.z)); }
+        [Hlsl("atan2")] protected static vec4 atan2(vec4 y, vec4 x) { return vec(atan(y.x, x.x), atan(y.y, x.y), atan(y.z, x.z), atan(y.w, x.w)); }
+
 
         [Hlsl("max")]
         protected static float max(float a, float b)
@@ -215,30 +253,39 @@ namespace FragSharpFramework
             return (float)Math.Max(a, b);
         }
 
-        protected static float max(float a, float b, float c)
-        {
-            return max(max(a, b), c);
-        }
+        [Hlsl("max")] protected static vec2 max(vec2 a, vec2 b) { return vec(max(a.x, b.x), max(a.y, b.y)); }
+        [Hlsl("max")] protected static vec3 max(vec3 a, vec3 b) { return vec(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)); }
+        [Hlsl("max")] protected static vec4 max(vec4 a, vec4 b) { return vec(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w)); }
 
-        protected static float max(float a, float b, float c, float d)
-        {
-            return max(max(a,b), max(c,d));
-        }
+        protected static float max(float a, float b, float c) { return max(max(a, b), c); }
+        protected static vec2  max(vec2  a, vec2  b, vec2  c) { return max(max(a, b), c); }
+        protected static vec3  max(vec3  a, vec3  b, vec3  c) { return max(max(a, b), c); }
+        protected static vec4  max(vec4  a, vec4  b, vec4  c) { return max(max(a, b), c); }
+
+        protected static float max(float a, float b, float c, float d) { return max(max(a,b), max(c,d)); }
+        protected static vec2  max(vec2  a, vec2  b, vec2  c, vec2  d) { return max(max(a,b), max(c,d)); }
+        protected static vec3  max(vec3  a, vec3  b, vec3  c, vec3  d) { return max(max(a,b), max(c,d)); }
+        protected static vec4  max(vec4  a, vec4  b, vec4  c, vec4  d) { return max(max(a,b), max(c,d)); }
+
 
         [Hlsl("min")]
         protected static float min(float a, float b)
         {
-            return (float)Math.Max(a, b);
+            return (float)Math.Min(a, b);
         }
 
-        protected static float min(float a, float b, float c)
-        {
-            return min(min(a, b), c);
-        }
+        [Hlsl("min")] protected static vec2 min(vec2 a, vec2 b) { return vec(min(a.x, b.x), min(a.y, b.y)); }
+        [Hlsl("min")] protected static vec3 min(vec3 a, vec3 b) { return vec(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)); }
+        [Hlsl("min")] protected static vec4 min(vec4 a, vec4 b) { return vec(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z), min(a.w, b.w)); }
 
-        protected static float min(float a, float b, float c, float d)
-        {
-            return min(min(a, b), min(c, d));
-        }
+        protected static float min(float a, float b, float c) { return min(min(a, b), c); }
+        protected static vec2  min(vec2  a, vec2  b, vec2  c) { return min(min(a, b), c); }
+        protected static vec3  min(vec3  a, vec3  b, vec3  c) { return min(min(a, b), c); }
+        protected static vec4  min(vec4  a, vec4  b, vec4  c) { return min(min(a, b), c); }
+
+        protected static float min(float a, float b, float c, float d) { return min(min(a,b), min(c,d)); }
+        protected static vec2  min(vec2  a, vec2  b, vec2  c, vec2  d) { return min(min(a,b), min(c,d)); }
+        protected static vec3  min(vec3  a, vec3  b, vec3  c, vec3  d) { return min(min(a,b), min(c,d)); }
+        protected static vec4  min(vec4  a, vec4  b, vec4  c, vec4  d) { return min(min(a,b), min(c,d)); }
     }
 }
