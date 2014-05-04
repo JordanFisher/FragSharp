@@ -394,7 +394,10 @@ namespace FragSharpFramework
             return new vec4(v.X, v.Y, v.Z, v.W);
         }
 
-        public static readonly vec4 Zero = new vec4(0, 0, 0, 0);
+        public static readonly vec4 Zero    = new vec4(0, 0, 0, 0);
+        public static readonly vec4 Nothing = new vec4(0, 0, 0, 0);
+
+        // Extra code gen goes here
     }
 
     [Hlsl("float4")]
@@ -528,7 +531,8 @@ namespace FragSharpFramework
             return new color(v.X, v.Y, v.Z, v.W);
         }
 
-        public static readonly color Zero = new color(0f, 0f, 0f, 0f);
+        public static readonly color Zero    = new color(0f, 0f, 0f, 0f);
+        public static readonly color Nothing = new color(0, 0, 0, 0);
 
         // -------------------------------------------------------------------
 
@@ -538,5 +542,7 @@ namespace FragSharpFramework
         {
             return new color(v.R, v.G, v.B, v.A);
         }
+
+        // Extra code gen goes here
     }
 }

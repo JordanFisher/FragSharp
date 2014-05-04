@@ -376,7 +376,7 @@ namespace FragSharp
                     CompileExpression(expression.Left);
                     Write("{0}-{0}", Space);
                     CompileExpression(expression.Right);
-                    Write(") < .001");
+                    Write("){0}<{0}.001", Space);
                     break;
 
                 case "!=":
@@ -384,7 +384,35 @@ namespace FragSharp
                     CompileExpression(expression.Left);
                     Write("{0}-{0}", Space);
                     CompileExpression(expression.Right);
-                    Write(") > .001");
+                    Write("){0}>{0}.001", Space);
+                    break;
+
+                case "<":
+                    CompileExpression(expression.Left);
+                    Write("{0}<{0}", Space);
+                    CompileExpression(expression.Right);
+                    Write("{0}-{0}.001", Space);
+                    break;
+
+                case ">":
+                    CompileExpression(expression.Left);
+                    Write("{0}>{0}", Space);
+                    CompileExpression(expression.Right);
+                    Write("{0}+{0}.001", Space);
+                    break;
+
+                case "<=":
+                    CompileExpression(expression.Left);
+                    Write("{0}<={0}", Space);
+                    CompileExpression(expression.Right);
+                    Write("{0}+{0}.001", Space);
+                    break;
+
+                case ">=":
+                    CompileExpression(expression.Left);
+                    Write("{0}>={0}", Space);
+                    CompileExpression(expression.Right);
+                    Write("{0}-{0}.001", Space);
                     break;
 
                 default:

@@ -401,32 +401,13 @@ using FragSharpFramework;
                 if (Processed.Contains(class_symbol)) continue;
                 Processed.Add(class_symbol);
 
-                /*
-                var attributes = symbol.GetAttributes();
-                if (attributes.Count == 0) continue;
-
-                AttributeData copy = null;
-                foreach (var a in attributes)
-                {
-                    if (a.AttributeClass.Name == "CopyAttribute")
-                    {
-                        copy = a;
-                        break;
-                    }
-                }
-
-                NamedTypeSymbol type = null;
-                if (copy != null)
-                {
-                    type = copy.ConstructorArguments.First().Value as NamedTypeSymbol;
-                }
-                */
-
                 if (type != null)
                 {
                     var code = type.DeclaringSyntaxNodes.First();
 
                     var output = code.ToFullString().Replace(type.Name, class_symbol.Name);
+                    output = output.Replace("// Extra code gen goes here", string.Format(@"public static explicit operator {1}(vec4 v) {{ return new {1}(v.x, v.y, v.z, v.w); }}
+        public static explicit operator vec4({1} v) {{ return new vec4(v.x, v.y, v.z, v.w); }}", " ", class_symbol.Name));
                     
                     writer.WriteLine("namespace {0}", class_symbol.ContainingNamespace);
                     writer.Write("{");

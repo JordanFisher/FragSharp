@@ -21,6 +21,17 @@ namespace FragSharpFramework
             _( bool _) {}
     }
 
+    public class VecField : PointSampler
+    {
+        new public vec4 this[RelativeIndex index]
+        {
+            get
+            {
+                return vec4.Zero;
+            }
+        }
+    }
+
     public class PointSampler : Sampler
     {
     }
