@@ -73,7 +73,7 @@ namespace Life
 
 namespace Life
 {
-    public partial class UpdateLife
+    public partial class UpdateLife_
     {
         public static Effect CompiledEffect;
 

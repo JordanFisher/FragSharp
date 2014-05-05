@@ -21,15 +21,30 @@ namespace FragSharpFramework
             _( bool _) {}
     }
 
-    public class VecField : PointSampler
+    //public class VecField : PointSampler
+    //{
+    //    new public vec4 this[RelativeIndex index]
+    //    {
+    //        get
+    //        {
+    //            return vec4.Zero;
+    //        }
+    //    }
+    //}
+
+    public class Field<T> : PointSampler
     {
-        new public vec4 this[RelativeIndex index]
+        new public T this[RelativeIndex index]
         {
             get
             {
-                return vec4.Zero;
+                return default(T);
             }
         }
+    }
+
+    public class BlobSampler : Sampler
+    {
     }
 
     public class PointSampler : Sampler

@@ -2,17 +2,6 @@
 
 namespace Life
 {
-    public class Field<T> : PointSampler
-    {
-        new public T this[RelativeIndex index]
-        {
-            get
-            {
-                return default(T);
-            }
-        }
-    }
-
     public class State : GridComputation
     {
         public const float
