@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes.cs" />
+    <Compile Include="Input.cs" />
     <Compile Include="Marshal.cs" />
     <Compile Include="Quad.cs" />
     <Compile Include="GridComputation.cs" />

@@ -9,87 +9,22 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
+using FragSharpHelper;
 using FragSharpFramework;
 
 namespace Life
 {
 	public static class RndExtension
 	{
-		public static float RndBit(this System.Random rnd)
+		public static float RndBit(this Random rnd)
 		{
 			return rnd.NextDouble() > .5 ? 1 : 0;
 		}
 	}
 
-    public static class InputInfo
-    {
-        public static KeyboardState CurKeyboard, PrevKeyboard;
-
-        public static MouseState CurMouse, PrevMouse;
-        public static vec2 MousePos, MousePosPrev;
-
-        public static vec2 DeltaMousPos;
-        public static float DeltaMouseScroll;
-
-        public static void Update()
-        {
-            PrevMouse = CurMouse;
-            MousePosPrev = MousePos;
-
-            CurKeyboard = Keyboard.GetState();
-
-            CurMouse = Mouse.GetState();
-            MousePos = new vec2(CurMouse.X, CurMouse.Y);
-
-            DeltaMousPos = new vec2(CurMouse.X - PrevMouse.X, CurMouse.Y - PrevMouse.Y);
-            DeltaMouseScroll = CurMouse.ScrollWheelValue - PrevMouse.ScrollWheelValue;
-        }
-
-        public static bool LeftMousePressed
-        {
-            get
-            {
-                return CurMouse.LeftButton  == ButtonState.Pressed &&
-                       PrevMouse.LeftButton == ButtonState.Released;
-            }
-        }
-
-        public static bool LeftMouseDown
-        {
-            get
-            {
-                return CurMouse.LeftButton  == ButtonState.Pressed;
-            }
-        }
-
-        public static bool RightMousePressed
-        {
-            get
-            {
-                return CurMouse.RightButton  == ButtonState.Pressed &&
-                       PrevMouse.RightButton == ButtonState.Released;
-            }
-        }
-
-        public static bool RightMouseDown
-        {
-            get
-            {
-                return CurMouse.RightButton == ButtonState.Pressed;
-            }
-        }
-    }
-
-    public static class KeyExtension
-    {
-        public static bool Pressed(this Keys key)
-        {
-            return InputInfo.CurKeyboard.IsKeyDown(key);
-        }
-    }
-
 	public class LifeGame : Game
 	{
+        const bool MouseEnabled = false;
 		const bool UnlimitedSpeed = false;
 
 		vec2 CameraPos = vec2.Zero;
@@ -212,35 +147,43 @@ namespace Life
 		protected override void Update(GameTime gameTime)
 		{
 			// Allows the game to exit
-			if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
+			if (Buttons.Back.Down())
 				this.Exit();
 
-            InputInfo.Update();
+            Input.Update();
 
             const float MaxZoomOut = 1, MaxZoomIn = 200;
+
+            // Switch to software emulation
+            if (Keys.LeftShift.Pressed())
+            {
+                __SamplerHelper.SoftwareEmulation = !__SamplerHelper.SoftwareEmulation;
+            }
 
             // Zoom all the way out
             if (Keys.Space.Pressed())
                 CameraZoom = MaxZoomOut;
 
             // Zoom in/out, into the location of the cursor
-            var world_mouse_pos = GetWorldCoordinate(InputInfo.MousePos);
+            var world_mouse_pos = GetWorldCoordinate(Input.CurMousePos);
             var hold_camvec = camvec;
             
 			float ZoomRate = 1.3333f;
-            if      (InputInfo.DeltaMouseScroll < 0) CameraZoom /= ZoomRate;
-            else if (InputInfo.DeltaMouseScroll > 0) CameraZoom *= ZoomRate;
+            if      (Input.DeltaMouseScroll < 0) CameraZoom /= ZoomRate;
+            else if (Input.DeltaMouseScroll > 0) CameraZoom *= ZoomRate;
 
             float KeyZoomRate = 1.125f;
-            if      (Keys.X.Pressed() || Keys.E.Pressed()) CameraZoom /= KeyZoomRate;
-            else if (Keys.Z.Pressed() || Keys.Q.Pressed()) CameraZoom *= KeyZoomRate;
+            if      (Buttons.X.Down() || Keys.X.Pressed() || Keys.E.Pressed()) CameraZoom /= KeyZoomRate;
+            else if (Buttons.A.Down() || Keys.Z.Pressed() || Keys.Q.Pressed()) CameraZoom *= KeyZoomRate;
 
             if (CameraZoom < MaxZoomOut) CameraZoom = MaxZoomOut;
             if (CameraZoom > MaxZoomIn)  CameraZoom = MaxZoomIn;
 
-            var shifted = GetShiftedCamera(InputInfo.MousePos, camvec, world_mouse_pos);
-            CameraPos = shifted;
-
+            if (MouseEnabled && !(Buttons.A.Pressed() || Buttons.X.Pressed()))
+            {
+                var shifted = GetShiftedCamera(Input.CurMousePos, camvec, world_mouse_pos);
+                CameraPos = shifted;
+            }
 
             // Move the camera via: Click And Drag
             //float MoveRate_ClickAndDrag = .00165f;
@@ -248,22 +191,18 @@ namespace Life
             //    CameraPos += InputInfo.DeltaMousPos / CameraZoom * MoveRate_ClickAndDrag * new vec2(-1, 1);
 
             // Move the camera via: Push Edge
-            float MoveRate_PushEdge = .07f;
-            var push_dir = vec2.Zero;
-            float EdgeRatio = .1f;
-            push_dir.x += -Restrict((EdgeRatio * Screen.x -     InputInfo.MousePos.x) / (EdgeRatio * Screen.x), 0, 1);
-            push_dir.x +=  Restrict((InputInfo.MousePos.x - (1-EdgeRatio) * Screen.x) / (EdgeRatio * Screen.x), 0, 1);
-            push_dir.y -= -Restrict((EdgeRatio * Screen.y - InputInfo.MousePos.y) / (EdgeRatio * Screen.y), 0, 1);
-            push_dir.y -=  Restrict((InputInfo.MousePos.y - (1 - EdgeRatio) * Screen.y) / (EdgeRatio * Screen.y), 0, 1);
+            //float MoveRate_PushEdge = .07f;
+            //var push_dir = vec2.Zero;
+            //float EdgeRatio = .1f;
+            //push_dir.x += -Restrict((EdgeRatio * Screen.x -     InputInfo.MousePos.x) / (EdgeRatio * Screen.x), 0, 1);
+            //push_dir.x +=  Restrict((InputInfo.MousePos.x - (1-EdgeRatio) * Screen.x) / (EdgeRatio * Screen.x), 0, 1);
+            //push_dir.y -= -Restrict((EdgeRatio * Screen.y - InputInfo.MousePos.y) / (EdgeRatio * Screen.y), 0, 1);
+            //push_dir.y -=  Restrict((InputInfo.MousePos.y - (1 - EdgeRatio) * Screen.y) / (EdgeRatio * Screen.y), 0, 1);
 
-            CameraPos += push_dir / CameraZoom * MoveRate_PushEdge;
+            //CameraPos += push_dir / CameraZoom * MoveRate_PushEdge;
 
             // Move the camera via: Keyboard
-            var dir = vec2.Zero;
-            if (Keys.Up   .Pressed() || Keys.W.Pressed()) dir.y =  1;
-            if (Keys.Down .Pressed() || Keys.S.Pressed()) dir.y = -1;
-            if (Keys.Right.Pressed() || Keys.D.Pressed()) dir.x =  1;
-            if (Keys.Left .Pressed() || Keys.A.Pressed()) dir.x = -1;
+            var dir = Input.Direction();
 
             float MoveRate_Keyboard = .07f;
             CameraPos += dir / CameraZoom * MoveRate_Keyboard;
@@ -357,7 +296,14 @@ namespace Life
 
 		void SimulationUpdate()
 		{
-            UpdateLife.Apply(Current, Output: Temp);
+            if (__SamplerHelper.SoftwareEmulation)
+            {
+                UpdateLife._Apply(Current, Output: Temp);
+            }
+            else
+            {
+                UpdateLife.Apply(Current, Output: Temp);
+            }
             Swap(ref Current, ref Temp);
 		}
 	}

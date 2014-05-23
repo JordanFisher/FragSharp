@@ -68,6 +68,11 @@ namespace FragSharpFramework
             return new Vector2(v.i, v.j);
         }
 
+        public static implicit operator vec2(RelativeIndex v)
+        {
+            return new vec2(v.i, v.j);
+        }
+
         public static explicit operator RelativeIndex(vec2 v)
         {
             return new RelativeIndex(v.x, v.y);
@@ -98,6 +103,16 @@ namespace FragSharpFramework
         public override string ToString()
         {
             return string.Format("{0}, {1}", x, y);
+        }
+
+        public float LengthSquared()
+        {
+            return x * x + y * y;
+        }
+
+        public float Length()
+        {
+            return (float)Math.Sqrt(LengthSquared());
         }
 
         public static vec2 operator *(float a, vec2 v)
@@ -143,6 +158,16 @@ namespace FragSharpFramework
         public static vec2 operator -(vec2 v)
         {
             return new vec2(-v.x, -v.y);
+        }
+
+        public static bool operator ==(vec2 v, vec2 w)
+        {
+            return v.x == w.x && v.y == w.y;
+        }
+
+        public static bool operator !=(vec2 v, vec2 w)
+        {
+            return v.x != w.x || v.y != w.y;
         }
 
         public static implicit operator Vector2(vec2 v)
@@ -257,8 +282,18 @@ namespace FragSharpFramework
     }
 
     [Hlsl("float4")]
-    public partial struct vec4
+    public partial struct vec4 : Convertible</*KeepInCopy*/ vec4, vec4>
     {
+        public vec4 ConvertFrom(/*KeepInCopy*/ vec4 v)
+        {
+            return (vec4)v;
+        }
+
+        public /*KeepInCopy*/ vec4 ConvertTo()
+        {
+            return (/*KeepInCopy*/ vec4)this;
+        }
+
         [Hlsl("float4")]
         public vec4(float x, float y, float z, float w)
         {

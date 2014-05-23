@@ -13,8 +13,18 @@ using FragSharpFramework;
 namespace Life
 {
     [Hlsl("float4")]
-    public partial struct cell
+    public partial struct cell : Convertible<vec4, cell>
     {
+        public cell ConvertFrom(vec4 v)
+        {
+            return (cell)v;
+        }
+
+        public vec4 ConvertTo()
+        {
+            return (vec4)this;
+        }
+
         [Hlsl("float4")]
         public cell(float x, float y, float z, float w)
         {

@@ -60,10 +60,6 @@
     <XnaCompressContent>true</XnaCompressContent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FragSharpFramework, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\FragSharpFramework\bin\x86\Release\FragSharpFramework.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86">
       <Private>False</Private>
     </Reference>
@@ -112,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Drawing\BaseShader.cs" />
+    <Compile Include="Simulation\_UpdateLife.cs" />
     <Compile Include="Simulation\UpdateLife.cs" />
     <Compile Include="Drawing\DrawLife.cs" />
     <Compile Include="Simulation\Cell.cs" />
@@ -126,6 +123,10 @@
     <Content Include="GameThumbnail.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\FragSharpFramework\FragSharpFramework.csproj">
+      <Project>{0dd9a20d-2bca-4285-8ab7-6c234a8dd35a}</Project>
+      <Name>FragSharpFramework</Name>
+    </ProjectReference>
     <ProjectReference Include="..\GpuSimContent\GpuSimContent.contentproj">
       <Name>GpuSimContent</Name>
       <XnaReferenceType>Content</XnaReferenceType>

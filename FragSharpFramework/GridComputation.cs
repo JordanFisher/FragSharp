@@ -20,7 +20,13 @@ namespace FragSharpFramework
 
         public static void DrawGrid()
         {
-            UnitSquare.Draw(GraphicsDevice);
+            if (__SamplerHelper.SoftwareEmulation)
+            {
+            }
+            else
+            {
+                UnitSquare.Draw(GraphicsDevice);
+            }
         }
     }
 

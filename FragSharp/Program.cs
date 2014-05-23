@@ -406,6 +406,8 @@ using FragSharpFramework;
                     var code = type.DeclaringSyntaxNodes.First();
 
                     var output = code.ToFullString().Replace(type.Name, class_symbol.Name);
+                    output = output.Replace("/*KeepInCopy*/"  + class_symbol.Name, type.Name);
+                    output = output.Replace("/*KeepInCopy*/ " + class_symbol.Name, type.Name);
                     output = output.Replace("// Extra code gen goes here", string.Format(@"public static explicit operator {1}(vec4 v) {{ return new {1}(v.x, v.y, v.z, v.w); }}
         public static explicit operator vec4({1} v) {{ return new vec4(v.x, v.y, v.z, v.w); }}", " ", class_symbol.Name));
                     

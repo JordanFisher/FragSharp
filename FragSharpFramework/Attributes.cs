@@ -13,6 +13,8 @@ namespace FragSharpFramework
         public CopyAttribute(Type type) { }
     }
 
+    public class KeepInCopy : Attribute { }
+
     public enum Special { rgba_hex, rgb_hex }
     public class SpecialAttribute : Attribute
     {
