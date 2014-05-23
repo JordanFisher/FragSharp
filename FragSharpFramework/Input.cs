@@ -45,7 +45,11 @@ namespace FragSharpHelper
 
     public static class Input
     {
-        public static PlayerIndex PrimaryPlayer = PlayerIndex.One;
+        private static PlayerIndex PrimaryPlayer = PlayerIndex.One;
+        public static void SetPrimaryPlayer(PlayerIndex PrimaryPlayer)
+        {
+            Input.PrimaryPlayer = PrimaryPlayer;
+        }
 
         public static KeyboardState CurKeyboard, PrevKeyboard;
         public static GamePadState[] CurGamepad = new GamePadState[4], PrevGamepad = new GamePadState[4];

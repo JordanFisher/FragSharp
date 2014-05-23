@@ -201,7 +201,7 @@ namespace Life
 
             //CameraPos += push_dir / CameraZoom * MoveRate_PushEdge;
 
-            // Move the camera via: Keyboard
+            // Move the camera via: Keyboard or Gamepad
             var dir = Input.Direction();
 
             float MoveRate_Keyboard = .07f;
