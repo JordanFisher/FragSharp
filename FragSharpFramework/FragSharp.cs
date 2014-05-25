@@ -39,6 +39,10 @@ namespace FragSharpFramework
         where Type : Convertible<vec4, Type>
             { public Field(Texture2D Texture) : base(Texture) { } }
 
+    public class PeriodicField<Type> : Sampler<Type, Wrap, Point>
+        where Type : Convertible<vec4, Type>
+            { public PeriodicField(Texture2D Texture) : base(Texture) { } }
+
     public class PointSampler : TextureSampler<Wrap, Point>
             { public PointSampler(Texture2D Texture) : base(Texture) { } }
     public class PointSampler<Address> : TextureSampler<Address, Point>
