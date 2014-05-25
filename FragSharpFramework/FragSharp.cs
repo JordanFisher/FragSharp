@@ -21,51 +21,83 @@ namespace FragSharpFramework
             _( bool _) {}
     }
 
-    public interface Convertible<T, S>
+    public interface Convertible<TargetType, BaseType>
     {
-        S ConvertFrom(T v);
-        T ConvertTo();
+        BaseType ConvertFrom(TargetType v);
+        TargetType ConvertTo();
     }
 
-    public partial class Field<T> : PointSampler where T : Convertible<vec4, T>
+    public class AddressType { }
+    public class Wrap : AddressType { }
+    public class Clamp : AddressType { }
+
+    public class SampleType { }
+    public class Point  : SampleType { }
+    public class Linear : SampleType { }
+
+    public class Field<Type> : Sampler<Type, Clamp, Point>
+        where Type : Convertible<vec4, Type>
+            { public Field(Texture2D Texture) : base(Texture) { } }
+
+    public class PointSampler : TextureSampler<Wrap, Point>
+            { public PointSampler(Texture2D Texture) : base(Texture) { } }
+    public class PointSampler<Address> : TextureSampler<Address, Point>
+        where Address : AddressType
+            { public PointSampler(Texture2D Texture) : base(Texture) { } }
+    public class PointSampler<AddressU, AddressV> : TextureSampler<AddressU, AddressV, Point, Point, Point>
+        where AddressU : AddressType
+        where AddressV : AddressType
+            { public PointSampler(Texture2D Texture) : base(Texture) { } }
+
+    public class TextureSampler : TextureSampler<Wrap, Linear>
+            { public TextureSampler(Texture2D Texture) : base(Texture) { } }
+    public class TextureSampler<Address, Filter> : TextureSampler<Address, Address, Filter, Filter, Filter>
+        where Address : AddressType
+        where Filter : SampleType    
+            { public TextureSampler(Texture2D Texture) : base(Texture) { } }
+    public class TextureSampler<AddressU, AddressV, MinFilter, MagFilter, MipFilter> : Sampler<color, AddressU, AddressV, MinFilter, MagFilter, MipFilter>
+        where AddressU : AddressType
+        where AddressV : AddressType
+        where MinFilter : SampleType
+        where MagFilter : SampleType
+        where MipFilter : SampleType
+            { public TextureSampler(Texture2D Texture) : base(Texture) { } }
+
+    public class Sampler<Type, Address, Filter> : Sampler<Type, Address, Address, Filter, Filter, Filter>
+        where Type : Convertible<vec4, Type>
+        where Address : AddressType
+        where Filter : SampleType
+            { public Sampler(Texture2D Texture) : base(Texture) { } }
+
+    public class SamplerBaseAttribute : Attribute { }
+    [SamplerBase]
+    public class Sampler<Type, AddressU, AddressV, MinFilter, MagFilter, MipFilter> : Sampler
+        where Type : Convertible<vec4, Type>
+        where AddressU : AddressType
+        where AddressV : AddressType
+        where MinFilter : SampleType
+        where MagFilter : SampleType
+        where MipFilter : SampleType
     {
-        public Field(Texture2D Texture)
+        public Sampler(Texture2D Texture)
             : base(Texture)
         {
         }
 
-        new public T this[RelativeIndex index]
+        new public Type this[RelativeIndex index]
         {
             get
             {
-                T t = default(T);
+                Type t = default(Type);
                 return t.ConvertFrom(base[index]);
             }
         }
     }
 
-    public class PointSampler : Sampler
-    {
-        public PointSampler(Texture2D Texture)
-            : base(Texture)
-        {
-        }
-    }
-
-    public class LinearSampler : Sampler
-    {
-        public LinearSampler(Texture2D Texture)
-            : base(Texture)
-        {
-        }
-    }
-
     [Hlsl("sampler")]
-    public class Sampler : FragSharpStd
+    public abstract class Sampler : FragSharpStd
     {
-        public Sampler()
-        {
-        }
+        public Sampler() { }
 
         public Sampler(Texture2D Texture)
         {

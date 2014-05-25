@@ -397,6 +397,41 @@ namespace FragSharp
             }
         }
 
+        /// <summary>
+        /// All sampler types must derive directly or indirectly from the generic SamplerBase type.
+        /// This method takes a sampler type and returns the realized SamplerBase type it derives from.
+        /// </summary>
+        /// <param name="sampler">The sampler type</param>
+        /// <returns></returns>
+        NamedTypeSymbol GetSamplerBase(TypeSymbol sampler)
+        {
+            if (sampler.HasAttribute("SamplerBase")) return sampler as NamedTypeSymbol;
+            if (sampler.BaseType != null) return GetSamplerBase(sampler.BaseType);
+            return null;
+        }
+
+        string TypeToFilter(TypeSymbol type)
+        {
+            switch (type.Name)
+            {
+                case "Linear": return "Linear";
+                case "Point": return "Point";
+
+                default: return "Point";
+            }
+        }
+
+        string TypeToAddress(TypeSymbol type)
+        {
+            switch (type.Name)
+            {
+                case "Wrap": return "Wrap";
+                case "Clamp": return "Clamp";
+
+                default: return "Point";
+            }
+        }
+
         void CompileSamplerParameter(ParameterSyntax parameter, TypeSymbol symbol)
         {
             SamplerNumber++;
@@ -404,10 +439,14 @@ namespace FragSharp
             string name = parameter.Identifier.ValueText;
             string mapped_name = FragmentShaderParameterPrefix + name;
 
-            string filter = symbol.DerivesFrom("PointSampler") ? "Point" : "Point";
-            string edge   = symbol.DerivesFrom("PointSampler") ? "Clamp" : "Wrap";
-
-            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name, filter, edge);
+            var sampler_base = GetSamplerBase(symbol);
+            string address_u = TypeToAddress(sampler_base.TypeArguments[1]);
+            string address_v = TypeToAddress(sampler_base.TypeArguments[2]);
+            string min_filter = TypeToFilter(sampler_base.TypeArguments[3]);
+            string mag_filter = TypeToFilter(sampler_base.TypeArguments[4]);
+            string mip_filter = TypeToFilter(sampler_base.TypeArguments[5]);
+            
+            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name, address_u, address_v, min_filter, mag_filter, mip_filter);
 
             Params.Add(new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam));
         }
@@ -421,10 +460,10 @@ Texture {2}_Texture;
 sampler {2} : register(s{1}) = sampler_state
 {{
 {0}texture   = <{2}_Texture>;
-{0}MipFilter = {3};
-{0}MagFilter = {3};
-{0}MinFilter = {3};
-{0}AddressU  = {4};
+{0}MipFilter = {7};
+{0}MagFilter = {6};
+{0}MinFilter = {5};
+{0}AddressU  = {3};
 {0}AddressV  = {4};
 }};";
 

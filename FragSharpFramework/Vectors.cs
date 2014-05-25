@@ -436,8 +436,18 @@ namespace FragSharpFramework
     }
 
     [Hlsl("float4")]
-    public partial struct color
+    public partial struct color : Convertible</*KeepInCopy*/ vec4, color>
     {
+        public color ConvertFrom(/*KeepInCopy*/ vec4 v)
+        {
+            return (color)v;
+        }
+
+        public /*KeepInCopy*/ vec4 ConvertTo()
+        {
+            return (/*KeepInCopy*/ vec4)this;
+        }
+
         [Hlsl("float4")]
         public color(float x, float y, float z, float w)
         {

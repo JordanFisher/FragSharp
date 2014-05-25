@@ -40,5 +40,10 @@ namespace FragSharp
 
             return attribute;
         }
+
+        public static bool HasAttribute(this Symbol symbol, string AttributeName)
+        {
+            return symbol.GetAttribute(AttributeName) != null;
+        }
     }
 }
