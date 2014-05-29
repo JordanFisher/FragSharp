@@ -339,9 +339,16 @@ namespace FragSharp
 
         override protected void CompileReturnStatement(ReturnStatementSyntax statement)
         {
-            BeginLine("return ");
-            CompileExpression(statement.Expression);
-            EndLine(";");
+            if (statement.Expression == null)
+            {
+                WriteLine("return;");
+            }
+            else
+            {
+                BeginLine("return ");
+                CompileExpression(statement.Expression);
+                EndLine(";");
+            }
         }
 
         protected static bool IsAssignment(BinaryExpressionSyntax expression)
