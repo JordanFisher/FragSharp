@@ -11,6 +11,22 @@ using Roslyn.Compilers.CSharp;
 
 namespace FragSharp
 {
+    static class SymbolInfoExtension
+    {
+        public static Symbol GetSymbolOrSetError(this SymbolInfo info, ref string LastError)
+        {
+            if (info.Symbol != null)
+            {
+                return info.Symbol;
+            }
+            else
+            {
+                LastError = info.CandidateReason.ToString();
+                return null;
+            }
+        }
+    }
+
     static class SymbolExtension
     {
         public static bool DerivesFrom(this TypeSymbol symbol, string name)

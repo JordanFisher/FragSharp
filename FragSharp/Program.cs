@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 
 using Roslyn.Compilers;
 using Roslyn.Compilers.Common;
@@ -10,6 +11,12 @@ using Roslyn.Services;
 using Roslyn.Compilers.CSharp;
 
 using FragSharp.Build;
+using FragSharpFramework;
+
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Content.Pipeline;
+using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
+using Microsoft.Xna.Framework.Content.Pipeline.Processors;
 
 namespace FragSharp
 {
@@ -171,6 +178,8 @@ namespace FragSharp
                         if (field.IsReadOnly)
                         {
                             var decleration = member.DeclaringSyntaxNodes.First() as VariableDeclaratorSyntax;
+
+                            if (decleration.Initializer == null) continue; // Skip readonly's that have no compile time values.
 
                             var creation = decleration.Initializer.Value;// as ObjectCreationExpressionSyntax;
                             if (null != creation)
@@ -394,8 +403,19 @@ using FragSharpFramework;
                 var copy_attribute = GetCopyAttribute(_class);
                 if (copy_attribute == null) continue;
 
-                var arg = copy_attribute.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax;
+                var args = copy_attribute.ArgumentList.Arguments;
+                var arg = args[0].Expression as TypeOfExpressionSyntax;
                 var type = Models[_class.SyntaxTree].GetSymbolInfo(arg.Type).Symbol as NamedTypeSymbol;
+
+                string cast_type = "explicit";
+                if (args.Count >= 2)
+                {
+                    var style_name = Models[_class.SyntaxTree].GetSymbolInfo(args[1].Expression).Symbol.Name;
+
+                    if (style_name == Enum.GetName(typeof(CastStyle), CastStyle.ImplicitCast)) cast_type = "implicit";
+                    if (style_name == Enum.GetName(typeof(CastStyle), CastStyle.ExplicitCasts)) cast_type = "explicit";
+                    if (style_name == Enum.GetName(typeof(CastStyle), CastStyle.NoCasts)) cast_type = null;
+                }
 
                 var class_symbol = Models[_class.SyntaxTree].GetDeclaredSymbol(_class);
                 if (Processed.Contains(class_symbol)) continue;
@@ -408,8 +428,20 @@ using FragSharpFramework;
                     var output = code.ToFullString().Replace(type.Name, class_symbol.Name);
                     output = output.Replace("/*KeepInCopy*/"  + class_symbol.Name, type.Name);
                     output = output.Replace("/*KeepInCopy*/ " + class_symbol.Name, type.Name);
-                    output = output.Replace("// Extra code gen goes here", string.Format(@"public static explicit operator {1}(vec4 v) {{ return new {1}(v.x, v.y, v.z, v.w); }}
-        public static explicit operator vec4({1} v) {{ return new vec4(v.x, v.y, v.z, v.w); }}", " ", class_symbol.Name));
+
+                    switch (cast_type)
+                    {
+                        case null:
+                            output = output.Replace("// Extra code gen goes here", "");
+                            break;
+
+                        default:
+                            output = output.Replace("// Extra code gen goes here",
+                                string.Format(@"public static {2} operator {1}(vec4 v) {{ return new {1}(v.x, v.y, v.z, v.w); }}
+        public static {2} operator vec4({1} v) {{ return new vec4(v.x, v.y, v.z, v.w); }}", " ", class_symbol.Name, cast_type));
+
+                            break;
+                    }
                     
                     writer.WriteLine("namespace {0}", class_symbol.ContainingNamespace);
                     writer.Write("{");
@@ -557,6 +589,65 @@ using FragSharpFramework;
 
             // Compile target shaders
             BuildGeneratedShaders();
+            //BuildGeneratedShaders2();
+        }
+
+        static void BuildGeneratedShaders2()
+        {
+            // Empty the build directory
+            Directory.CreateDirectory(BuildPaths.ShaderBuildDir);
+            foreach (var file in Directory.GetFiles(BuildPaths.ShaderBuildDir))
+            {
+                File.Delete(file);
+            }
+
+            // Build each shader
+            foreach (var shader in ShaderClass.Shaders)
+            {
+                if (shader.TargetFile == null) continue;
+
+                string fx = File.ReadAllText(shader.TargetFile);
+
+                EffectProcessor effectProcessor = new EffectProcessor();
+                effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
+                var effect = effectProcessor.Process(new EffectContent { EffectCode = fx }, new MyProcessorContext());
+
+                byte[] ShaderObject = effect.GetEffectCode();
+
+                string output_file = Path.Combine(BuildPaths.ShaderBuildDir, Path.GetFileNameWithoutExtension(shader.TargetFile)) + ".xnb";
+                File.WriteAllBytes(output_file, ShaderObject);
+            }
+        }
+
+        class MyProcessorLogger : ContentBuildLogger
+        {
+            public static string Log = string.Empty;
+            public override void LogMessage(string message, params object[] messageArgs) { Log += message; }
+            public override void LogImportantMessage(string message, params object[] messageArgs) { Log += message; }
+            public override void LogWarning(string helpLink, ContentIdentity contentIdentity, string message, params object[] messageArgs) { Log += message; }
+        }
+
+        class MyProcessorContext : ContentProcessorContext
+        {
+            public override TargetPlatform TargetPlatform { get { return TargetPlatform.Windows; } }
+            public override GraphicsProfile TargetProfile { get { return GraphicsProfile.HiDef; } }
+            public override string BuildConfiguration { get { return string.Empty; } }
+            public override string IntermediateDirectory { get { return string.Empty; } }
+            public override string OutputDirectory { get { return string.Empty; } }
+            public override string OutputFilename { get { return string.Empty; } }
+
+            public override OpaqueDataDictionary Parameters { get { return parameters; } }
+            OpaqueDataDictionary parameters = new OpaqueDataDictionary();
+
+            public override ContentBuildLogger Logger { get { return logger; } }
+            ContentBuildLogger logger = new MyProcessorLogger();
+
+            public override void AddDependency(string filename) { }
+            public override void AddOutputFile(string filename) { }
+
+            public override TOutput Convert<TInput, TOutput>(TInput input, string processorName, OpaqueDataDictionary processorParameters) { throw new NotImplementedException(); }
+            public override TOutput BuildAndLoadAsset<TInput, TOutput>(ExternalReference<TInput> sourceAsset, string processorName, OpaqueDataDictionary processorParameters, string importerName) { throw new NotImplementedException(); }
+            public override ExternalReference<TOutput> BuildAsset<TInput, TOutput>(ExternalReference<TInput> sourceAsset, string processorName, OpaqueDataDictionary processorParameters, string importerName, string assetName) { throw new NotImplementedException(); }
         }
 
         static void BuildGeneratedShaders()
@@ -581,6 +672,21 @@ using FragSharpFramework;
 
             // Build the shaders
             string buildError = contentBuilder.Build();
+
+            /* fxc build, debug, and asm output
+            if (buildError != null && buildError.Length > 0)
+            {
+                string fxc = "C:/Program Files (x86)/Microsoft DirectX SDK (June 2010)/Utilities/bin/x86/fxc.exe";
+                string file = "C:/Users/Jordan/Desktop/Dir/Projects/Million/GpuSim/GpuSim/GpuSim/__GeneratedShaders/_Counting.fx";
+                
+                //string arguments = string.Format("/Od /Zi /Tfx_2_0 /Fo {0}o {0}", file);
+                //string arguments = string.Format("/Tfx_2_0 /Fc {0}o.asm {0}", file); // Generate asm text
+                string arguments = string.Format("/Tfx_2_0 /Fe {0}.out {0}", file); // Generate errors and warnings
+
+                string output = RunCommand(fxc, arguments);
+                Console.WriteLine(output);
+            }
+            */
 
             var files = Directory.GetFiles(contentBuilder.BuiltDirectory);
 
@@ -694,6 +800,25 @@ using FragSharpFramework;
             }
 
             return methods;
+        }
+
+        static string RunCommand(string Executable, string Arguments)
+        {
+            // Start the child process.
+            Process p = new Process();
+
+            // Redirect the output stream of the child process.
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.FileName = Executable;
+            p.StartInfo.Arguments = Arguments;
+
+            p.Start();
+
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+
+            return output;
         }
    }
 }

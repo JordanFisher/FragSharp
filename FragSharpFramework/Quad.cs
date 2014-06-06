@@ -52,6 +52,16 @@ namespace FragSharpFramework
             vertexData[BOTTOM_LEFT] = new VertexPositionColorTexture(_PositionBl, Color.White, _UvBl);
         }
 
+        public void SetColor(color clr)
+        {
+            Color _clr = new Color(FragSharpMarshal.Marshal(clr));
+
+            vertexData[TOP_LEFT].Color = _clr;
+            vertexData[TOP_RIGHT].Color = _clr;
+            vertexData[BOTTOM_RIGHT].Color = _clr;
+            vertexData[BOTTOM_LEFT].Color = _clr;
+        }
+
         public void Draw(GraphicsDevice GraphicsDevice)
         {
             GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertexData, 0, 4, indexData, 0, 2);

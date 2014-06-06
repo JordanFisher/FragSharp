@@ -160,6 +160,11 @@ namespace Life
             return new cell(v.X, v.Y, v.Z, v.W);
         }
 
+        public static explicit operator Color(cell v)
+        {
+            return new Color(v.x, v.y, v.z, v.w);
+        }        
+
         public static readonly cell Zero    = new cell(0, 0, 0, 0);
         public static readonly cell Nothing = new cell(0, 0, 0, 0);
 

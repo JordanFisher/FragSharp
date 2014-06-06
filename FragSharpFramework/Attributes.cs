@@ -8,9 +8,12 @@ using Microsoft.Xna.Framework.Graphics;
 namespace FragSharpFramework
 {
     public enum TranslationType { Substitute, ReplaceExpression, UnderscoreAppend };
+
+    public enum CastStyle { ExplicitCasts, ImplicitCast, NoCasts };
     public class CopyAttribute : Attribute
     {
         public CopyAttribute(Type type) { }
+        public CopyAttribute(Type type, CastStyle style) { }
     }
 
     public class KeepInCopy : Attribute { }

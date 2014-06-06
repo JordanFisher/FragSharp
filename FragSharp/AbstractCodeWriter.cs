@@ -10,6 +10,8 @@ namespace FragSharp
 {
     internal abstract class AbstractCodeWriter : IDisposable
     {
+        string LastError = "";
+
         public AbstractCodeWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
         {
             this.models            = models;
@@ -362,9 +364,9 @@ namespace FragSharp
 
             var m = GetModel(syntax);
 
-            if      (syntax is ArgumentSyntax)               return m.GetSymbolInfo    (((ArgumentSyntax)syntax).Expression).Symbol;
+            if      (syntax is ArgumentSyntax)               return m.GetSymbolInfo    (((ArgumentSyntax)syntax).Expression).GetSymbolOrSetError(ref LastError);
             else if (syntax is ParameterSyntax)              return m.GetDeclaredSymbol((ParameterSyntax)syntax);
-            else if (syntax is ExpressionSyntax)             return m.GetSymbolInfo((ExpressionSyntax)syntax).Symbol;
+            else if (syntax is ExpressionSyntax)             return m.GetSymbolInfo    ((ExpressionSyntax)syntax).GetSymbolOrSetError(ref LastError);
             else if (syntax is BaseMethodDeclarationSyntax)  return m.GetDeclaredSymbol((BaseMethodDeclarationSyntax)syntax);
             else throw new Exception("Code stub! Fix me please!");
         }

@@ -374,62 +374,72 @@ namespace FragSharp
 
         protected bool CompilingLeftSideOfAssignment = false;
 
+        void Swap<T>(ref T a, ref T b)
+        {
+            T temp = b;
+            b = a;
+            a = temp;
+        }
+
         override protected void CompileBinaryExpression(BinaryExpressionSyntax expression)
         {
+            var left = expression.Left;
+            var right = expression.Right;
+
             switch (expression.OperatorToken.ValueText)
             {
                 case "==":
                     Write("abs(");
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}-{0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("){0}<{0}.001", Space);
                     break;
 
                 case "!=":
                     Write("abs(");
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}-{0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("){0}>{0}.001", Space);
                     break;
 
                 case "<":
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}<{0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("{0}-{0}.001", Space);
                     break;
 
                 case ">":
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}>{0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("{0}+{0}.001", Space);
                     break;
 
                 case "<=":
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}<={0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("{0}+{0}.001", Space);
                     break;
 
                 case ">=":
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     Write("{0}>={0}", Space);
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     Write("{0}-{0}.001", Space);
                     break;
 
                 default:
                     if (IsAssignment(expression)) CompilingLeftSideOfAssignment = true;
-                    CompileExpression(expression.Left);
+                    CompileExpression(left);
                     if (IsAssignment(expression)) CompilingLeftSideOfAssignment = false;
 
                     Write("{1}{0}{1}", expression.OperatorToken, Space);
 
-                    CompileExpression(expression.Right);
+                    CompileExpression(right);
                     break;
             }
         }
