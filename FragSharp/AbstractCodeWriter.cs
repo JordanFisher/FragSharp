@@ -8,10 +8,8 @@ using Roslyn.Compilers.CSharp;
 
 namespace FragSharp
 {
-    internal abstract class AbstractCodeWriter : IDisposable
+    internal abstract class AbstractCodeWriter : RoslynHelper, IDisposable
     {
-        string LastError = "";
-
         public AbstractCodeWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
         {
             this.models            = models;
@@ -29,11 +27,6 @@ namespace FragSharp
 
         protected Dictionary<SyntaxTree, SemanticModel> models;
         protected Compilation compilation;
-
-        protected SemanticModel GetModel(SyntaxNode expression)
-        {
-            return models[expression.SyntaxTree];
-        }
 
         protected struct CompiledMethod
         {
@@ -283,6 +276,7 @@ namespace FragSharp
             else if (statement is BlockSyntax)                     CompileBlock(                    (BlockSyntax)                    statement);
             else if (statement is ExpressionStatementSyntax)       CompileExpressionStatement(      (ExpressionStatementSyntax)      statement);
             else if (statement is ReturnStatementSyntax)           CompileReturnStatement(          (ReturnStatementSyntax)          statement);
+            else if (statement is ThrowStatementSyntax)            CompileThrowStatement(           (ThrowStatementSyntax)           statement);
             else if (statement is StatementSyntax)                 WriteLine("statement {0}", statement.GetType());
         }
 
@@ -291,6 +285,7 @@ namespace FragSharp
         abstract protected void CompileBlock(BlockSyntax block);
         abstract protected void CompileExpressionStatement(ExpressionStatementSyntax statement);
         abstract protected void CompileReturnStatement(ReturnStatementSyntax statement);
+        virtual protected void CompileThrowStatement(ThrowStatementSyntax statement) { }
 
         virtual public void CompileExpression(ExpressionSyntax expression)
         {
@@ -329,6 +324,11 @@ namespace FragSharp
         abstract protected string VertexToPixelType { get; }
         abstract protected string VertexToPixelDecl { get; }
 
+        protected SemanticModel GetModel(SyntaxNode expression) { return GetModel(expression, models); }
+        protected Symbol          GetSymbol(ArgumentSyntax syntax)  { return GetSymbol(syntax, models); }
+        protected ParameterSymbol GetSymbol(ParameterSyntax syntax) { return GetSymbol(syntax, models); }
+        protected Symbol          GetSymbol(SyntaxNode syntax)      { return GetSymbol(syntax, models); }
+
         protected bool IsSampler(SyntaxNode param) { return IsSamplerType(GetType(GetSymbol(param))); }
 
         protected bool IsSamplerType(TypeSymbol symbol)
@@ -339,54 +339,6 @@ namespace FragSharp
             if (info.Translation == "sampler") return true;
 
             return false;
-            //return symbol != null && TranslationLookup.SymbolMap.ContainsKey(symbol) && TranslationLookup.SymbolMap[symbol].Translation == "sampler";
-        }
-
-        protected TypeSymbol GetType(Symbol symbol)
-        {
-            if (symbol == null) return null;
-
-            if      (symbol is LocalSymbol)     return ((LocalSymbol)    symbol).Type;
-            else if (symbol is ParameterSymbol) return ((ParameterSymbol)symbol).Type;
-            else if (symbol is FieldSymbol)     return ((FieldSymbol)    symbol).Type;
-            else if (symbol is PropertySymbol)  return ((PropertySymbol) symbol).Type;
-            else if (symbol is MethodSymbol)    return ((MethodSymbol)   symbol).ReturnType;
-            
-            else throw new Exception("Symbol has no type!");
-        }
-
-        protected Symbol          GetSymbol(ArgumentSyntax  syntax) { return syntax == null ? null : GetModel(syntax).GetSymbolInfo(syntax.Expression).Symbol; }
-        protected ParameterSymbol GetSymbol(ParameterSyntax syntax) { return syntax == null ? null : GetModel(syntax).GetDeclaredSymbol(syntax); }
-
-        protected Symbol GetSymbol(SyntaxNode syntax)
-        {
-            if (syntax == null) return null;
-
-            var m = GetModel(syntax);
-
-            if      (syntax is ArgumentSyntax)               return m.GetSymbolInfo    (((ArgumentSyntax)syntax).Expression).GetSymbolOrSetError(ref LastError);
-            else if (syntax is ParameterSyntax)              return m.GetDeclaredSymbol((ParameterSyntax)syntax);
-            else if (syntax is ExpressionSyntax)             return m.GetSymbolInfo    ((ExpressionSyntax)syntax).GetSymbolOrSetError(ref LastError);
-            else if (syntax is BaseMethodDeclarationSyntax)  return m.GetDeclaredSymbol((BaseMethodDeclarationSyntax)syntax);
-            else throw new Exception("Code stub! Fix me please!");
-        }
-
-        /// <summary>
-        /// This is a special string formatting helper function to assist in formatting strings with curly braces inside.
-        /// Use <$0$>, <$1$>, <$2$>, ... instead of {0}, {1}, {2}.
-        /// </summary>
-        /// <param name="format">The string to be formatted.</param>
-        /// <param name="arguments">The arguments to interpolate into the string.</param>
-        /// <returns></returns>
-        protected static string SpecialFormat(string format, params object[] args)
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-                string InterpolationSymbol = "<$" + i.ToString() + "$>";
-                format = format.Replace(InterpolationSymbol, args[i].ToString());
-            }
-
-            return format;
         }
 
         public void Dispose()

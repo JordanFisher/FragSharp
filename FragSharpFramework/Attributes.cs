@@ -9,6 +9,12 @@ namespace FragSharpFramework
 {
     public enum TranslationType { Substitute, ReplaceExpression, UnderscoreAppend };
 
+    public class ValsAttribute : Attribute
+    {
+        public ValsAttribute(params int[] vals) { }
+        public ValsAttribute(params float[] vals) { }
+    }
+
     public enum CastStyle { ExplicitCasts, ImplicitCast, NoCasts };
     public class CopyAttribute : Attribute
     {

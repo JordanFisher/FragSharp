@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Roslyn.Compilers.CSharp;
 
@@ -14,17 +15,20 @@ namespace FragSharp
 
     internal class HlslShaderWriter : HlslWriter
     {
-        public HlslShaderWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation)
+        public HlslShaderWriter(Dictionary<SyntaxTree, SemanticModel> models, Compilation compilation, Dictionary<Symbol, string> specialization)
             : base(models, compilation)
         {
+            this.specialization = specialization;
         }
+
+        Dictionary<Symbol, string> specialization;
 
         int SamplerNumber = 0;
 
         enum Compiling { None, VertexMethod, FragmentMethod };
         Compiling CurrentMethod = Compiling.None;
 
-        public ShaderCompilation CompileShader(NamedTypeSymbol Symbol, MethodDeclarationSyntax vertex_method, MethodDeclarationSyntax fragment_method)
+        public string CompileShader(NamedTypeSymbol Symbol, MethodDeclarationSyntax vertex_method, MethodDeclarationSyntax fragment_method)
         {
             ClearString();
             
@@ -88,41 +92,52 @@ namespace FragSharp
             string fragment = GetString();
             fragment = SpecialFormat(fragment, methods);
 
-            // Create the C# boilerplate that provides links
-            string boilerplate = CreateBoilerplate(Symbol);
-
-            return new ShaderCompilation(fragment, boilerplate);
+            return fragment;
         }
 
-        string CreateBoilerplate(NamedTypeSymbol symbol)
+        public string CompileShaderBoilerplate(NamedTypeSymbol Symbol, List<Dictionary<Symbol, string>> Specializations)
         {
             ClearString();
 
-            WriteLine("namespace {0}", symbol.ContainingNamespace);
+            WriteLine("namespace {0}", Symbol.ContainingNamespace);
             WriteLine("{");
 
             var PrevIndent1 = Indent();
 
-            WriteBoilerplateClass(symbol);
+            WriteBoilerplateClass(Symbol, Specializations);
 
             RestoreIndent(PrevIndent1);
 
             WriteLine("}");
             WriteLine();
 
-            return GetString();
+            string boilerplate = GetString();
+            return boilerplate;
         }
 
         const string ApplyName = "Apply", UsingName = "Using";
 
-        void WriteBoilerplateClass(NamedTypeSymbol symbol)
+        void WriteBoilerplateClass(NamedTypeSymbol symbol, List<Dictionary<Symbol, string>> Specializations)
         {
             WriteLine("public partial class {0}", symbol.Name);
             WriteLine("{");
 
             var PrevIndent = Indent();
 
-            WriteLine("public static Effect CompiledEffect;");
+            // If there are no specializations (count == 1) then we only need a single Effect.
+            if (Specializations.Count == 1)
+            {
+                WriteLine("public static Effect CompiledEffect;");
+            }
+            else
+            {
+                // Otherwise we need an Effect for each specialization.
+                foreach (var specialization in Specializations)
+                {
+                    WriteLine("public static Effect CompiledEffect{0};", ShaderClass.SpecializationVarSuffix(specialization));
+                }
+            }
+
             WriteLine();
 
             WriteBoilerplateSignature(ApplyName, "RenderTarget2D Output, Color Clear");
@@ -136,7 +151,7 @@ namespace FragSharp
             WriteBoilerplateUsingFuncOverload("Output", "Color.Transparent");
 
             WriteBoilerplateSignature(UsingName);
-            WriteBoilerplateUsingFunc();
+            WriteBoilerplateUsingFunc(Specializations);
 
             RestoreIndent(PrevIndent);
 
@@ -147,11 +162,11 @@ namespace FragSharp
         {
             BeginLine("public static void {0}(", FunctionName);
 
-            foreach (var param in Params)
+            foreach (var param in AllParams)
             {
                 Write("{0} {1}", param.TypeName, param.Name);
 
-                if (ExtraParams != null || param != Params.Last())
+                if (ExtraParams != null || param != AllParams.Last())
                 {
                     Write(",{0}", Space);
                 }
@@ -169,11 +184,11 @@ namespace FragSharp
         {
             BeginLine("{0}(", UsingName);
 
-            foreach (var param in Params)
+            foreach (var param in AllParams)
             {
                 Write(param.Name);
 
-                if (param != Params.Last())
+                if (param != AllParams.Last())
                 {
                     Write(",{0}", Space);
                 }
@@ -219,10 +234,12 @@ namespace FragSharp
             WriteLine("}");
         }
 
-        void WriteBoilerplateUsingFunc()
+        void WriteBoilerplateUsingFunc(List<Dictionary<Symbol, string>> Specializations)
         {
             WriteLine("{");
             var PrevIndent = Indent();
+
+            WriteBoilerplateEffectChoice(Specializations);
 
             foreach (var param in Params)
             {
@@ -242,6 +259,42 @@ namespace FragSharp
 
             RestoreIndent(PrevIndent);
             WriteLine("}");
+        }
+
+        void WriteBoilerplateEffectChoice(List<Dictionary<Symbol, string>> Specializations)
+        {
+            if (Specializations.Count > 1)
+            {
+                WriteLine("Effect CompiledEffect = null;");
+                WriteLine();
+
+                foreach (var specialization in Specializations)
+                {
+                    WriteLine("{2}if ({1}) CompiledEffect = CompiledEffect{0};",
+                        ShaderClass.SpecializationVarSuffix(specialization),
+                        SpecializationEquality(specialization),
+                        specialization == Specializations.First() ? "" : "else ");
+                }
+                WriteLine();
+
+                WriteLine("if (CompiledEffect == null) throw new Exception(\"Parameters do not match any specified specialization.\");");
+                WriteLine();
+            }
+        }
+
+        string SpecializationEquality(Dictionary<Symbol, string> specialization)
+        {
+            string equality = "";
+            foreach (var variable in specialization)
+            {
+                //equality += string.Format("{1}{0}=={0}{2}", Space, variable.Key.Name, variable.Value);
+                equality += string.Format("abs((float)({1}{0}-{0}{2})){0}<{0}{3}", Space, variable.Key.Name, variable.Value, eps);
+
+                if (variable.Key != specialization.Last().Key)
+                    equality += string.Format("{0}&&{0}", Space);
+            }
+
+            return equality;
         }
 
         override protected void CompileReturnStatement(ReturnStatementSyntax statement)
@@ -283,7 +336,15 @@ namespace FragSharp
             }
         }
 
+        /// <summary>
+        /// Parameters that are used in the vertex/fragment shader, NOT including parameters factored out as constant specializations.
+        /// </summary>
         List<Param> Params = new List<Param>();
+
+        /// <summary>
+        /// Parameters that are used in the vertex/fragment shader, INCLUDING parameters factored out as constant specializations.
+        /// </summary>
+        List<Param> AllParams = new List<Param>();
 
         void CompileVertexSignature(MethodDeclarationSyntax method)
         {
@@ -303,7 +364,7 @@ namespace FragSharp
 
         Dictionary<Symbol, string> CompileFragmentSignature(MethodDeclarationSyntax method)
         {
-            var SignatureMap = new Dictionary<Symbol, string>();
+            var SignatureMap = new Dictionary<Symbol, string>(specialization);
 
             var ParameterList = method.ParameterList.Parameters;
             if (ParameterList.Count == 0) return SignatureMap;
@@ -312,20 +373,28 @@ namespace FragSharp
             var last  = ParameterList.Last();
             foreach (var parameter in ParameterList)
             {
+                var symbol = GetSymbol(parameter);
+
+                // The first parameter must be a VertexOut, which maps to "psin"
                 if (parameter == first)
                 {
-                    var symbol = GetModel(parameter).GetDeclaredSymbol(parameter);
-
                     SignatureMap.Add(symbol, "psin");
                     continue;
                 }
 
-                CompileFragmentParameter(parameter);
-                EndLine();
+                // Skip specialization values
+                bool specialized = SignatureMap.ContainsKey(symbol);
 
-                if (parameter != last)
+                CompileFragmentParameter(parameter, specialized);
+
+                if (!specialized)
                 {
-                    WriteLine();
+                    EndLine();
+
+                    if (parameter != last)
+                    {
+                        WriteLine();
+                    }
                 }
             }
 
@@ -360,13 +429,15 @@ namespace FragSharp
                         Write(mapped_name);
                         Write(";");
 
-                        Params.Add(new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.VertexParam));
+                        var param = new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.VertexParam);
+                        Params.Add(param);
+                        AllParams.Add(param);
                     }
                 }
             }
         }
 
-        void CompileFragmentParameter(ParameterSyntax parameter)
+        void CompileFragmentParameter(ParameterSyntax parameter, bool specialized)
         {
             var info = GetModel(parameter).GetSymbolInfo(parameter.Type);
 
@@ -386,12 +457,17 @@ namespace FragSharp
                         string name = parameter.Identifier.ValueText;
                         string mapped_name = FragmentShaderParameterPrefix + name;
 
-                        Write(type);
-                        Write(" ");
-                        Write(mapped_name);
-                        Write(";");
+                        if (!specialized)
+                        {
+                            Write(type);
+                            Write(" ");
+                            Write(mapped_name);
+                            Write(";");
+                        }
 
-                        Params.Add(new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.FragmentParam));
+                        var param = new Param(parameter.Type.ToString(), type, name, mapped_name, Param.ParamType.FragmentParam);
+                        if (!specialized) Params.Add(param);
+                        AllParams.Add(param);
                     }
                 }
             }
@@ -448,7 +524,9 @@ namespace FragSharp
             
             Write(SamplerTemplate, Tab, SamplerNumber, mapped_name, address_u, address_v, min_filter, mag_filter, mip_filter);
 
-            Params.Add(new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam));
+            var param = new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam);
+            Params.Add(param);
+            AllParams.Add(param);
         }
 
 const string SamplerTemplate =

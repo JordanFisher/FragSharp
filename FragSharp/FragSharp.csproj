@@ -78,6 +78,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ContentBuilder.cs" />
+    <Compile Include="RoslynHelper.cs" />
     <Compile Include="SymbolExtension.cs" />
     <Compile Include="CStyleWriter.cs" />
     <Compile Include="ErrorLogger.cs" />

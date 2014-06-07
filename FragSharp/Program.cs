@@ -20,6 +20,19 @@ using Microsoft.Xna.Framework.Content.Pipeline.Processors;
 
 namespace FragSharp
 {
+    public static class Assert
+    {
+        public class AssertFail : Exception { public AssertFail() { } }
+
+        public static void That(bool expression)
+        {
+            if (!expression)
+            {
+                throw new AssertFail();
+            }
+        }
+    }
+
     static class ListExtension
     {
         public static void AddUnique<T>(this List<T> list, T item)
@@ -224,141 +237,289 @@ namespace FragSharp
         }
     }
 
+    class ShaderClass : RoslynHelper
+    {
+        public static List<ShaderClass> Shaders = new List<ShaderClass>();
+
+        public string TargetFile;
+
+        static Dictionary<NamedTypeSymbol, ShaderClass> SymbolLookup = new Dictionary<NamedTypeSymbol, ShaderClass>();
+        //static Dictionary<MethodDeclarationSyntax, HlslShaderWriter>
+        //    VertexCompilations   = new Dictionary<MethodDeclarationSyntax, HlslShaderWriter>(),
+        //    FragmentCompilations = new Dictionary<MethodDeclarationSyntax, HlslShaderWriter>();
+
+        Dictionary<SyntaxTree, SemanticModel> Models;
+        Compilation SourceCompilation;
+
+        public static void AddShader(NamedTypeSymbol symbol, Dictionary<SyntaxTree, SemanticModel> Models, Compilation SourceCompilation)
+        {
+            if (!SymbolLookup.ContainsKey(symbol))
+            {
+                var shader = new ShaderClass(symbol, Models, SourceCompilation);
+
+                SymbolLookup.Add(symbol, shader);
+                Shaders.Add(shader);
+            }
+        }
+
+        ShaderClass(NamedTypeSymbol symbol, Dictionary<SyntaxTree, SemanticModel> Models, Compilation SourceCompilation)
+        {
+            Symbol = symbol;
+            this.Models = Models;
+            this.SourceCompilation = SourceCompilation;
+
+            // Get all syntax nodes
+            Nodes = new List<SyntaxNode>();
+            foreach (var node in Symbol.DeclaringSyntaxNodes)
+            {
+                Nodes.AddRange(node.DescendantNodes());
+            }
+
+            // Find all methods
+            Methods = Nodes.OfType<MethodDeclarationSyntax>().ToList();
+        }
+
+        public NamedTypeSymbol Symbol;
+
+        public List<SyntaxNode> Nodes;
+        public List<MethodDeclarationSyntax> Methods;
+
+        public ShaderClass BaseClass;
+
+        public MethodDeclarationSyntax VertexShaderDecleration, FragmentShaderDecleration;
+
+        public List<Dictionary<Symbol, string>> Specializations = new List<Dictionary<Symbol, string>>();
+
+        public void Setup()
+        {
+            GetBaseClass();
+            GetVertexShaderDecleration();
+            GetFragmentShaderDecleration();
+        }
+
+        public static string SpecializationVarSuffix(Dictionary<Symbol, string> specialization)
+        {
+            string suffix = "";
+            foreach (var variable in specialization)
+            {
+                suffix += string.Format("_{0}_{1}", variable.Key.Name, variable.Value.Replace("=", "_eq_").Replace(".", "p"));
+            }
+
+            return suffix;
+        }
+
+        public string SpecializationFileName(Dictionary<Symbol, string> specialization)
+        {
+            string suffix = "";
+            foreach (var variable in specialization)
+            {
+                suffix += string.Format("_{0}={1}", variable.Key.Name, variable.Value);
+            }
+
+            return Symbol.Name + suffix;
+        }
+
+        public void WriteLoadCode(StringWriter BoilerWriter, string Tab)
+        {
+            if (!IsValidShader()) return;
+
+            foreach (var specialization in Specializations)
+            {
+                string filename = SpecializationFileName(specialization);
+                string suffix = SpecializationVarSuffix(specialization);
+                BoilerWriter.WriteLine("{0}{0}{0}{1}.{2}.CompiledEffect{3} = Content.Load<Effect>(\"FragSharpShaders/{4}\");", Tab, Symbol.ContainingNamespace, Symbol.Name, suffix, filename);
+            }
+        }
+
+        public void CompileAndWrite(StringWriter BoilerWriter, string CompileDir)
+        {
+            if (!IsValidShader()) return;
+
+            foreach (var specialization in Specializations)
+            {
+                string name = SpecializationFileName(specialization);
+
+                var compiled = Compile(specialization, specialization == Specializations.Last());
+
+                TargetFile = Path.Combine(CompileDir, name) + ".fx";
+
+                File.WriteAllText(TargetFile, compiled.Code);
+
+                BoilerWriter.Write(compiled.Boilerplate);
+                BoilerWriter.WriteLine();
+            }
+        }
+
+        public ShaderCompilation Compile(Dictionary<Symbol, string> specialization, bool CompileBoilerplate)
+        {
+            if (!IsValidShader()) return null;
+
+            HlslShaderWriter writer = new HlslShaderWriter(Models, SourceCompilation, specialization);
+            
+            string fragment = writer.CompileShader(Symbol, VertexShaderDecleration, FragmentShaderDecleration);
+            
+            string boilerplate = null;
+            if (CompileBoilerplate)
+            {
+                boilerplate = writer.CompileShaderBoilerplate(Symbol, Specializations);
+            }
+
+            return new ShaderCompilation(fragment, boilerplate);
+        }
+
+        private bool IsValidShader()
+        {
+            return VertexShaderDecleration != null && FragmentShaderDecleration != null;
+        }
+
+        ShaderClass GetBaseClass()
+        {
+            if (BaseClass != null) return BaseClass;
+
+            if (SymbolLookup.ContainsKey(Symbol.BaseType))
+            {
+                BaseClass = SymbolLookup[Symbol.BaseType];
+                return BaseClass;
+            }
+
+            return null;
+        }
+
+        MethodDeclarationSyntax GetVertexShaderDecleration()
+        {
+            if (VertexShaderDecleration != null)
+            {
+                return VertexShaderDecleration;
+            }
+
+            var vertex_shaders = Methods.Where(method => HasAttribute(method, "VertexShader")).ToList();
+
+            if (vertex_shaders.Count > 0)
+            {
+                VertexShaderDecleration = vertex_shaders[0];
+                return VertexShaderDecleration;
+            }
+
+            if (GetBaseClass() != null)
+            {
+                VertexShaderDecleration = BaseClass.GetVertexShaderDecleration();
+                return VertexShaderDecleration;
+            }
+
+            VertexShaderDecleration = null;
+            return null;
+        }
+
+        MethodDeclarationSyntax GetFragmentShaderDecleration()
+        {
+            if (FragmentShaderDecleration != null)
+            {
+                return FragmentShaderDecleration;
+            }
+
+            var Fragment_shaders = Methods.Where(method => HasAttribute(method, "FragmentShader")).ToList();
+
+            if (Fragment_shaders.Count > 0)
+            {
+                FragmentShaderDecleration = Fragment_shaders[0];
+                return FragmentShaderDecleration;
+            }
+
+            if (BaseClass != null)
+            {
+                FragmentShaderDecleration = BaseClass.GetFragmentShaderDecleration();
+                return FragmentShaderDecleration;
+            }
+
+            FragmentShaderDecleration = null;
+            return null;
+        }
+
+        static bool HasAttribute(MethodDeclarationSyntax method, string AttributeName)
+        {
+            return method.AttributeLists.Any(
+              list => list.Attributes.Any(
+                attribute => attribute.Name.ToString() == AttributeName));
+        }
+
+        public void GetSpecializations()
+        {
+            if (!IsValidShader()) return;
+
+            var ParameterList = FragmentShaderDecleration.ParameterList.Parameters;
+            if (ParameterList.Count == 0) return;
+
+            Specializations.Clear();
+            Specializations.Add(new Dictionary<Symbol, string>());
+
+            var first = ParameterList.First();
+            foreach (var parameter in ParameterList)
+            {
+                var symbol = GetSymbol(parameter, Models);
+
+                // The first parameter must be a VertexOut and can't be specialized, so skip it
+                if (parameter == first)
+                {
+                    continue;
+                }
+
+                List<TypedConstant> speciliazation_vals = new List<TypedConstant>();
+
+                // Get specialization values
+                var Vals = symbol.GetAttribute("Vals");
+                if (Vals != null && Vals.ConstructorArguments.Count() > 0)
+                {
+                    var args = Vals.ConstructorArguments;
+
+                    speciliazation_vals.AddRange(args.First().Values);
+                }
+
+                // Get second-order specialization values
+                foreach (var attr in symbol.GetAttributes())
+                {
+                    var vals_attr = attr.AttributeClass.GetAttribute("Vals");
+                    if (vals_attr != null && vals_attr.ConstructorArguments.Count() > 0)
+                    {
+                        var args = vals_attr.ConstructorArguments;
+
+                        speciliazation_vals.AddRange(args.First().Values);
+                    }
+                }
+
+                // Add specialization values to 
+                if (speciliazation_vals.Count > 0)
+                {
+                    List<Dictionary<Symbol, string>> copy = new List<Dictionary<Symbol, string>>(Specializations);
+                    Specializations.Clear();
+
+                    if (copy.Count == 0)
+                    {
+                        copy.Add(new Dictionary<Symbol, string>());
+                    }
+
+                    foreach (var specialization in copy)
+                    {
+                        foreach (var arg in speciliazation_vals)
+                        {
+                            var _specialization = new Dictionary<Symbol, string>(specialization);
+                            _specialization.Add(symbol, arg.Value.ToString());
+
+                            Specializations.Add(_specialization);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     internal static class Program
     {
         static Paths BuildPaths;
 
-        const string Tab = "    ";
+        public const string Tab = "    ";
 
         const string ExtensionFileName = "__ExtensionBoilerplate.cs";
         const string BoilerplateFileName = "__ShaderBoilerplate.cs";
-
-        class ShaderClass
-        {
-            public static List<ShaderClass> Shaders = new List<ShaderClass>();
-
-            public string TargetFile;
-
-            static Dictionary<NamedTypeSymbol, ShaderClass> SymbolLookup = new Dictionary<NamedTypeSymbol, ShaderClass>();
-            //static Dictionary<MethodDeclarationSyntax, HlslShaderWriter>
-            //    VertexCompilations   = new Dictionary<MethodDeclarationSyntax, HlslShaderWriter>(),
-            //    FragmentCompilations = new Dictionary<MethodDeclarationSyntax, HlslShaderWriter>();
-
-            public static void AddShader(NamedTypeSymbol symbol)
-            {
-                if (!SymbolLookup.ContainsKey(symbol))
-                {
-                    var shader = new ShaderClass(symbol);
-
-                    SymbolLookup.Add(symbol, shader);
-                    Shaders.Add(shader);
-                }
-            }
-
-            ShaderClass(NamedTypeSymbol symbol)
-            {
-                Symbol = symbol;
-
-                // Get all syntax nodes
-                Nodes = new List<SyntaxNode>();
-                foreach (var node in Symbol.DeclaringSyntaxNodes)
-                {
-                    Nodes.AddRange(node.DescendantNodes());
-                }
-
-                // Find all methods
-                Methods = Nodes.OfType<MethodDeclarationSyntax>().ToList();
-            }
-
-            public NamedTypeSymbol Symbol;
-            
-            public List<SyntaxNode> Nodes;
-            public List<MethodDeclarationSyntax> Methods;
-
-            public ShaderClass BaseClass;
-
-            public MethodDeclarationSyntax VertexShaderDecleration, FragmentShaderDecleration;
-
-            public void Setup()
-            {
-                GetBaseClass();
-                GetVertexShaderDecleration();
-                GetFragmentShaderDecleration();
-            }
-
-            public ShaderCompilation Compile()
-            {
-                if (VertexShaderDecleration == null || FragmentShaderDecleration == null) return null;
-
-                HlslShaderWriter writer = new HlslShaderWriter(Models, SourceCompilation);
-                var output = writer.CompileShader(Symbol, VertexShaderDecleration, FragmentShaderDecleration);
-
-                return output;
-            }
-
-            ShaderClass GetBaseClass()
-            {
-                if (BaseClass != null) return BaseClass;
-
-                if (SymbolLookup.ContainsKey(Symbol.BaseType))
-                {
-                    BaseClass = SymbolLookup[Symbol.BaseType];
-                    return BaseClass;
-                }
-
-                return null;
-            }
-
-            MethodDeclarationSyntax GetVertexShaderDecleration()
-            {
-                if (VertexShaderDecleration != null)
-                {
-                    return VertexShaderDecleration;
-                }
-
-                var vertex_shaders = Methods.Where(method => HasAttribute(method, "VertexShader")).ToList();
-
-                if (vertex_shaders.Count > 0)
-                {
-                    VertexShaderDecleration = vertex_shaders[0];
-                    return VertexShaderDecleration;
-                }
-
-                if (GetBaseClass() != null)
-                {
-                    VertexShaderDecleration = BaseClass.GetVertexShaderDecleration();
-                    return VertexShaderDecleration;
-                }
-
-                VertexShaderDecleration = null;
-                return null;
-            }
-
-            MethodDeclarationSyntax GetFragmentShaderDecleration()
-            {
-                if (FragmentShaderDecleration != null)
-                {
-                    return FragmentShaderDecleration;
-                }
-
-                var Fragment_shaders = Methods.Where(method => HasAttribute(method, "FragmentShader")).ToList();
-
-                if (Fragment_shaders.Count > 0)
-                {
-                    FragmentShaderDecleration = Fragment_shaders[0];
-                    return FragmentShaderDecleration;
-                }
-
-                if (BaseClass != null)
-                {
-                    FragmentShaderDecleration = BaseClass.GetFragmentShaderDecleration();
-                    return FragmentShaderDecleration;
-                }
-
-                FragmentShaderDecleration = null;
-                return null;
-            }
-        }
 
         static Dictionary<SyntaxTree, SemanticModel> Models;
         static Compilation SourceCompilation;
@@ -470,9 +631,18 @@ using FragSharpFramework;
             return true;
         }
 
-        private static AttributeSyntax GetCopyAttribute(TypeDeclarationSyntax _class)
+        static AttributeSyntax GetValsAttribute(TypeDeclarationSyntax _class)
         {
-            //var nodes = _class.DeclaringSyntaxNodes[0];
+            return GetAttribute(_class, "Vals");
+        }
+
+        static AttributeSyntax GetCopyAttribute(TypeDeclarationSyntax _class)
+        {
+            return GetAttribute(_class, "Copy");
+        }
+
+        static AttributeSyntax GetAttribute(TypeDeclarationSyntax _class, string AttributeName)
+        {
             foreach (var node in _class.ChildNodes())
             {
                 var attribute_node = node as AttributeListSyntax;
@@ -480,7 +650,7 @@ using FragSharpFramework;
                 {
                     foreach (var attribute in attribute_node.Attributes)
                     {
-                        if (attribute.Name.ToString() == "Copy")
+                        if (attribute.Name.ToString() == AttributeName)
                         {
                             return attribute;
                         }
@@ -535,7 +705,7 @@ using FragSharpFramework;
                 var symbol = Model(_class).GetDeclaredSymbol(_class);
 
                 if (IsShader(symbol))
-                    ShaderClass.AddShader(symbol);
+                    ShaderClass.AddShader(symbol, Models, SourceCompilation);
             }
 
             foreach (var shader in ShaderClass.Shaders)
@@ -544,6 +714,11 @@ using FragSharpFramework;
                 Console.WriteLine("{0}, vertex = {1}, fragment = {2}", shader.Symbol,
                     shader.VertexShaderDecleration == null ? "none" : shader.VertexShaderDecleration.Identifier.ToString(),
                     shader.FragmentShaderDecleration == null ? "none" : shader.FragmentShaderDecleration.Identifier.ToString());
+            }
+
+            foreach (var shader in ShaderClass.Shaders)
+            {
+                shader.GetSpecializations();
             }
 
             // Create shader directory to store compiled shaders. Empty it if it has files in it.
@@ -562,9 +737,7 @@ using FragSharpFramework;
 
             foreach (var shader in ShaderClass.Shaders)
             {
-                if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
-
-                BoilerWriter.WriteLine("{0}{0}{0}{1}.{2}.CompiledEffect = Content.Load<Effect>(\"FragSharpShaders/{2}\");", Tab, shader.Symbol.ContainingNamespace, shader.Symbol.Name);
+                shader.WriteLoadCode(BoilerWriter, Tab);
             }
 
             BoilerWriter.WriteLine(HlslShaderWriter.BoilerEndInitializer, Tab);
@@ -572,16 +745,7 @@ using FragSharpFramework;
 
             foreach (var shader in ShaderClass.Shaders)
             {
-                if (shader.VertexShaderDecleration == null || shader.FragmentShaderDecleration == null) continue;
-
-                var compiled = shader.Compile();
-
-                shader.TargetFile = Path.Combine(BuildPaths.ShaderCompileDir, shader.Symbol.Name) + ".fx";
-
-                File.WriteAllText(shader.TargetFile, compiled.Code);
-                
-                BoilerWriter.Write(compiled.Boilerplate);
-                BoilerWriter.WriteLine();
+                shader.CompileAndWrite(BoilerWriter, BuildPaths.ShaderCompileDir);
             }
 
             Directory.CreateDirectory(BuildPaths.BoilerRoot);
@@ -602,11 +766,9 @@ using FragSharpFramework;
             }
 
             // Build each shader
-            foreach (var shader in ShaderClass.Shaders)
+            foreach (var file in Directory.GetFiles(BuildPaths.ShaderCompileDir, "*.fx"))
             {
-                if (shader.TargetFile == null) continue;
-
-                string fx = File.ReadAllText(shader.TargetFile);
+                string fx = File.ReadAllText(file);
 
                 EffectProcessor effectProcessor = new EffectProcessor();
                 effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
@@ -614,9 +776,25 @@ using FragSharpFramework;
 
                 byte[] ShaderObject = effect.GetEffectCode();
 
-                string output_file = Path.Combine(BuildPaths.ShaderBuildDir, Path.GetFileNameWithoutExtension(shader.TargetFile)) + ".xnb";
+                string output_file = Path.Combine(BuildPaths.ShaderBuildDir, Path.GetFileNameWithoutExtension(file)) + ".xnb";
                 File.WriteAllBytes(output_file, ShaderObject);
             }
+
+            //foreach (var shader in ShaderClass.Shaders)
+            //{
+            //    if (shader.TargetFile == null) continue;
+
+            //    string fx = File.ReadAllText(shader.TargetFile);
+
+            //    EffectProcessor effectProcessor = new EffectProcessor();
+            //    effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
+            //    var effect = effectProcessor.Process(new EffectContent { EffectCode = fx }, new MyProcessorContext());
+
+            //    byte[] ShaderObject = effect.GetEffectCode();
+
+            //    string output_file = Path.Combine(BuildPaths.ShaderBuildDir, Path.GetFileNameWithoutExtension(shader.TargetFile)) + ".xnb";
+            //    File.WriteAllBytes(output_file, ShaderObject);
+            //}
         }
 
         class MyProcessorLogger : ContentBuildLogger
@@ -656,12 +834,19 @@ using FragSharpFramework;
 
             contentBuilder.Clear();
 
-            foreach (var shader in ShaderClass.Shaders)
+            foreach (var file in Directory.GetFiles(BuildPaths.ShaderCompileDir, "*.fx"))
             {
-                if (shader.TargetFile == null) continue;
+                string name = Path.GetFileNameWithoutExtension(file);
 
-                contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, "EffectImporter", "EffectProcessor");
+                contentBuilder.Add(file, name, "EffectImporter", "EffectProcessor");
             }
+
+            //foreach (var shader in ShaderClass.Shaders)
+            //{
+            //    if (shader.TargetFile == null) continue;
+
+            //    contentBuilder.Add(shader.TargetFile, shader.Symbol.Name, "EffectImporter", "EffectProcessor");
+            //}
 
             // Empty the build directory
             Directory.CreateDirectory(BuildPaths.ShaderBuildDir);
@@ -766,13 +951,6 @@ using FragSharpFramework;
 
                 WriteTree(child, output, indent + "--");
             }
-        }
-
-        static bool HasAttribute(MethodDeclarationSyntax method, string AttributeName)
-        {
-            return method.AttributeLists.Any(
-              list => list.Attributes.Any(
-                attribute => attribute.Name.ToString() == AttributeName));
         }
 
         static bool IsGridComputtion(MethodDeclarationSyntax method)

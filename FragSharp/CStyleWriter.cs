@@ -381,6 +381,7 @@ namespace FragSharp
             a = temp;
         }
 
+        protected const string eps = ".001";
         override protected void CompileBinaryExpression(BinaryExpressionSyntax expression)
         {
             var left = expression.Left;
@@ -393,7 +394,7 @@ namespace FragSharp
                     CompileExpression(left);
                     Write("{0}-{0}", Space);
                     CompileExpression(right);
-                    Write("){0}<{0}.001", Space);
+                    Write("){0}<{0}{1}", Space, eps);
                     break;
 
                 case "!=":
@@ -401,35 +402,35 @@ namespace FragSharp
                     CompileExpression(left);
                     Write("{0}-{0}", Space);
                     CompileExpression(right);
-                    Write("){0}>{0}.001", Space);
+                    Write("){0}>{0}{1}", Space, eps);
                     break;
 
                 case "<":
                     CompileExpression(left);
                     Write("{0}<{0}", Space);
                     CompileExpression(right);
-                    Write("{0}-{0}.001", Space);
+                    Write("{0}-{0}{1}", Space, eps);
                     break;
 
                 case ">":
                     CompileExpression(left);
                     Write("{0}>{0}", Space);
                     CompileExpression(right);
-                    Write("{0}+{0}.001", Space);
+                    Write("{0}+{0}{1}", Space, eps);
                     break;
 
                 case "<=":
                     CompileExpression(left);
                     Write("{0}<={0}", Space);
                     CompileExpression(right);
-                    Write("{0}+{0}.001", Space);
+                    Write("{0}+{0}{1}", Space, eps);
                     break;
 
                 case ">=":
                     CompileExpression(left);
                     Write("{0}>={0}", Space);
                     CompileExpression(right);
-                    Write("{0}-{0}.001", Space);
+                    Write("{0}-{0}{1}", Space, eps);
                     break;
 
                 default:
