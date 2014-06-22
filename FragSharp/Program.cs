@@ -884,7 +884,7 @@ using FragSharpFramework;
 
         static void CompileUserCode()
         {
-            //var sln = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, "Debug").Solution;
+            //var sln = Solution.LoadStandAloneProject(BuildPaths.ProjectPath).Solution;
             //sln.Projects.First().GetCompilation();
             //foreach (var doc in sln.Projects.First().DocumentIds)
             //    sln = sln.ReloadDocument(doc);

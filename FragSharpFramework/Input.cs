@@ -1,14 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Xna.Framework;
 using Xna = Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.GamerServices;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
 
 using FragSharpFramework;
 
@@ -118,10 +109,10 @@ namespace FragSharpHelper
         {
             vec2 dir = vec2.Zero;
 
-            if (Up.Pressed())    dir.y =  1;
-            if (Down.Pressed())  dir.y = -1;
-            if (Right.Pressed()) dir.x =  1;
-            if (Left.Pressed())  dir.x = -1;
+            if (Up.Down())    dir.y =  1;
+            if (Down.Down()) dir.y = -1;
+            if (Right.Down()) dir.x = 1;
+            if (Left.Down()) dir.x = -1;
 
             return dir;
         }
@@ -191,9 +182,19 @@ namespace FragSharpHelper
             return CombineDir(GamepadLeftJoyDir(Player), KeyboardDir(), KeyboardDirAsdw(), GamepadDpadDir(Player), GamepadRightJoyDir(Player));
         }
 
-        public static bool Pressed(this Keys key)
+        public static bool Down(this Keys key)
         {
             return Input.CurKeyboard.IsKeyDown(key);
+        }
+
+        public static bool Pressed(this Keys key)
+        {
+            return Input.CurKeyboard.IsKeyDown(key) && !Input.PrevKeyboard.IsKeyDown(key);
+        }
+
+        public static bool Released(this Keys key)
+        {
+            return !Input.CurKeyboard.IsKeyDown(key) && Input.PrevKeyboard.IsKeyDown(key);
         }
 
         public static bool Down(this ButtonState state)

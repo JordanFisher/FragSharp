@@ -293,24 +293,79 @@ namespace FragSharpFramework
         }
 
         /// <summary>
-        /// Converts a "float int" value such as _0, _1, ... to its corresponding integer value, such as 0, 1, ...
+        /// Converts a fint (float int) value such as _0, _1, ... to its corresponding integer value, such as 0, 1, ...
         /// </summary>
-        /// <param name="v">The "float int" value to convert.</param>
+        /// <param name="v">The fint (float int) to convert.</param>
         /// <returns></returns>
         public static int Int(float v)
         {
             return (int)floor(255 * v + .5f);
         }
 
+        /// <summary>
+        /// Converts a fint (float int) value such as _0, _1, ... to its corresponding float value, such as 0, 1, ...
+        /// </summary>
+        /// <param name="v">The fint (float int) to convert.</param>
+        /// <returns></returns>
+        public static float Float(float v)
+        {
+            return floor(255 * v + .5f);
+        }
+
+        /// <summary>
+        /// Converts an integer value such as 0, 1, ... to its corresponding fint (float int) value such as _0, _1, ...
+        /// </summary>
+        /// <param name="v">The integer value to convert.</param>
+        /// <returns></returns>
+        public static float Fint(int v)
+        {
+            return v * _1;
+        }
+
+        /// <summary>
+        /// Converts a float value such as 0, 1, ... to its corresponding fint (float int) value such as _0, _1, ...
+        /// </summary>
+        /// <param name="v">The float value to convert.</param>
+        /// <returns></returns>
+        public static float Fint(float v)
+        {
+            return v * _1;
+        }
+
+        /// <summary>
+        /// Rounds a fint (float int) value such as _0, _1, ... to its closest fint value.
+        /// </summary>
+        /// <param name="v">The fint (float int) to convert.</param>
+        /// <returns></returns>
+        public static float fint_round(float v)
+        {
+            return floor(255 * v + .5f) * _1;
+        }
+
+
         [Hlsl("floor")]
-        protected static float floor(float value)
+        public static float floor(float value)
         {
             return (float)Math.Floor(value);
         }
 
-        [Hlsl("floor")] protected static vec2 floor(vec2 v) { return vec(floor(v.x), floor(v.y)); }
-        [Hlsl("floor")] protected static vec3 floor(vec3 v) { return vec(floor(v.x), floor(v.y), floor(v.z)); }
-        [Hlsl("floor")] protected static vec4 floor(vec4 v) { return vec(floor(v.x), floor(v.y), floor(v.z), floor(v.w)); }
+        [Hlsl("floor")] public static vec2 floor(vec2 v) { return vec(floor(v.x), floor(v.y)); }
+        [Hlsl("floor")] public static vec3 floor(vec3 v) { return vec(floor(v.x), floor(v.y), floor(v.z)); }
+        [Hlsl("floor")] public static vec4 floor(vec4 v) { return vec(floor(v.x), floor(v.y), floor(v.z), floor(v.w)); }
+
+
+        [Hlsl("round")]
+        public static float round(float value)
+        {
+            return floor(value + .5f);
+        }
+
+        [Hlsl("round")]
+        public static vec2 round(vec2 v) { return vec(round(v.x), round(v.y)); }
+        [Hlsl("round")]
+        public static vec3 round(vec3 v) { return vec(round(v.x), round(v.y), round(v.z)); }
+        [Hlsl("round")]
+        public static vec4 round(vec4 v) { return vec(round(v.x), round(v.y), round(v.z), round(v.w)); }
 
 
         [Hlsl("length")]
@@ -329,6 +384,22 @@ namespace FragSharpFramework
         protected static float length(vec4 v)
         {
             return (float)Math.Sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
+        }
+
+
+        protected static float length_squared(vec2 v)
+        {
+            return v.x * v.x + v.y * v.y;
+        }
+
+        protected static float length_squared(vec3 v)
+        {
+            return v.x * v.x + v.y * v.y + v.z * v.z;
+        }
+
+        protected static float length_squared(vec4 v)
+        {
+            return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
         }
 
 

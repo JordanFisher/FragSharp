@@ -14,44 +14,44 @@ using FragSharpFramework;
 
 namespace Life
 {
-	public static class RndExtension
-	{
-		public static float RndBit(this Random rnd)
-		{
-			return rnd.NextDouble() > .5 ? 1 : 0;
-		}
-	}
+    public static class RndExtension
+    {
+        public static float RndBit(this Random rnd)
+        {
+            return rnd.NextDouble() > .5 ? 1 : 0;
+        }
+    }
 
-	public class LifeGame : Game
-	{
+    public class LifeGame : Game
+    {
         const bool MouseEnabled = false;
-		const bool UnlimitedSpeed = false;
+        const bool UnlimitedSpeed = false;
 
-		vec2 CameraPos = vec2.Zero;
-		float CameraZoom = 30;
+        vec2 CameraPos = vec2.Zero;
+        float CameraZoom = 30;
         float CameraAspect = 1;
         vec4 camvec { get { return new vec4(CameraPos.x, CameraPos.y, CameraZoom, CameraZoom); } }
 
-		GraphicsDeviceManager graphics;
+        GraphicsDeviceManager graphics;
 
         RenderTarget2D
             Temp, Current;
 
         const int w = 1024, h = 1024;
 
-		public LifeGame()
-		{
-			graphics = new GraphicsDeviceManager(this);
+        public LifeGame()
+        {
+            graphics = new GraphicsDeviceManager(this);
 
-			Window.Title = "Game of Life, FragSharp Demo";
+            Window.Title = "Game of Life, FragSharp Demo";
             graphics.PreferredBackBufferWidth  = w;
             graphics.PreferredBackBufferHeight = h;
-			//graphics.IsFullScreen = rez.Mode == WindowMode.Fullscreen;
-			graphics.SynchronizeWithVerticalRetrace = !UnlimitedSpeed;
-			IsFixedTimeStep = !UnlimitedSpeed;
+            //graphics.IsFullScreen = rez.Mode == WindowMode.Fullscreen;
+            graphics.SynchronizeWithVerticalRetrace = !UnlimitedSpeed;
+            IsFixedTimeStep = !UnlimitedSpeed;
 
-			Content.RootDirectory = "Content";
-		}
+            Content.RootDirectory = "Content";
+        }
 
         public vec2 Screen
         {
@@ -68,15 +68,15 @@ namespace Life
             return val;
         }
 
-		void Swap<T>(ref T a, ref T b)
-		{
-			T temp = a;
-			a = b;
-			b = temp;
-		}
+        void Swap<T>(ref T a, ref T b)
+        {
+            T temp = a;
+            a = b;
+            b = temp;
+        }
 
-		protected override void Initialize()
-		{
+        protected override void Initialize()
+        {
             FragSharp.Initialize(Content, GraphicsDevice);
 
             GridHelper.Initialize(GraphicsDevice);
@@ -87,8 +87,8 @@ namespace Life
 
             Temp = MakeTarget(w, h);
             
-			base.Initialize();
-		}
+            base.Initialize();
+        }
         
         void InitialConditions(int w, int h)
         {
@@ -122,33 +122,33 @@ namespace Life
             return new RenderTarget2D(graphics.GraphicsDevice, w, h);
         }
 
-		/// <summary>
-		/// LoadContent will be called once per game and is the place to load
-		/// all of your content.
-		/// </summary>
-		protected override void LoadContent()
-		{
-		}
+        /// <summary>
+        /// LoadContent will be called once per game and is the place to load
+        /// all of your content.
+        /// </summary>
+        protected override void LoadContent()
+        {
+        }
 
-		/// <summary>
-		/// UnloadContent will be called once per game and is the place to unload
-		/// all content.
-		/// </summary>
-		protected override void UnloadContent()
-		{
-			// TODO: Unload any non ContentManager content here
-		}
+        /// <summary>
+        /// UnloadContent will be called once per game and is the place to unload
+        /// all content.
+        /// </summary>
+        protected override void UnloadContent()
+        {
+            // TODO: Unload any non ContentManager content here
+        }
 
-		/// <summary>
-		/// Allows the game to run logic such as updating the world,
-		/// checking for collisions, gathering input, and playing audio.
-		/// </summary>
-		/// <param name="gameTime">Provides a snapshot of timing values.</param>
-		protected override void Update(GameTime gameTime)
-		{
-			// Allows the game to exit
-			if (Buttons.Back.Down())
-				this.Exit();
+        /// <summary>
+        /// Allows the game to run logic such as updating the world,
+        /// checking for collisions, gathering input, and playing audio.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+        protected override void Update(GameTime gameTime)
+        {
+            // Allows the game to exit
+            if (Buttons.Back.Down())
+                this.Exit();
 
             Input.Update();
 
@@ -168,13 +168,13 @@ namespace Life
             var world_mouse_pos = GetWorldCoordinate(Input.CurMousePos);
             var hold_camvec = camvec;
             
-			float ZoomRate = 1.3333f;
+            float ZoomRate = 1.3333f;
             if      (Input.DeltaMouseScroll < 0) CameraZoom /= ZoomRate;
             else if (Input.DeltaMouseScroll > 0) CameraZoom *= ZoomRate;
 
             float KeyZoomRate = 1.125f;
-            if      (Buttons.X.Down() || Keys.X.Pressed() || Keys.E.Pressed()) CameraZoom /= KeyZoomRate;
-            else if (Buttons.A.Down() || Keys.Z.Pressed() || Keys.Q.Pressed()) CameraZoom *= KeyZoomRate;
+            if      (Buttons.X.Down() || Keys.X.Down() || Keys.E.Down()) CameraZoom /= KeyZoomRate;
+            else if (Buttons.A.Down() || Keys.Z.Down() || Keys.Q.Down()) CameraZoom *= KeyZoomRate;
 
             if (CameraZoom < MaxZoomOut) CameraZoom = MaxZoomOut;
             if (CameraZoom > MaxZoomIn)  CameraZoom = MaxZoomIn;
@@ -217,32 +217,32 @@ namespace Life
             if (BL.y < -1) CameraPos = new vec2(CameraPos.x, CameraPos.y - (BL.y + 1));
 
 
-			base.Update(gameTime);
-		}
+            base.Update(gameTime);
+        }
 
         const double DelayBetweenUpdates = .3333;
-		double SecondsSinceLastUpdate = DelayBetweenUpdates;
-		public static float PercentSimStepComplete = 0;
+        double SecondsSinceLastUpdate = DelayBetweenUpdates;
+        public static float PercentSimStepComplete = 0;
 
         int DrawCount = 0;
 
-		/// <summary>
-		/// This is called when the game should draw itself.
-		/// </summary>
-		/// <param name="gameTime">Provides a snapshot of timing values.</param>
-		protected override void Draw(GameTime gameTime)
-		{
+        /// <summary>
+        /// This is called when the game should draw itself.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+        protected override void Draw(GameTime gameTime)
+        {
             DrawCount++;
 
-			//if (CurKeyboard.IsKeyDown(Keys.Enter))
-			SecondsSinceLastUpdate += gameTime.ElapsedGameTime.TotalSeconds;
+            //if (CurKeyboard.IsKeyDown(Keys.Enter))
+            SecondsSinceLastUpdate += gameTime.ElapsedGameTime.TotalSeconds;
 
-			// Render setup
-			GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-			GraphicsDevice.BlendState = BlendState.AlphaBlend;
-			GraphicsDevice.DepthStencilState = DepthStencilState.DepthRead;
+            // Render setup
+            GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            GraphicsDevice.BlendState = BlendState.AlphaBlend;
+            GraphicsDevice.DepthStencilState = DepthStencilState.DepthRead;
 
-			// Check if we need to do a simulation update
+            // Check if we need to do a simulation update
             if (UnlimitedSpeed || SecondsSinceLastUpdate > DelayBetweenUpdates)
             //if (SecondsSinceLastUpdate > DelayBetweenUpdates)
             {
@@ -251,18 +251,18 @@ namespace Life
                 SimulationUpdate();
             }
 
-			// Draw texture to screen
-			GraphicsDevice.SetRenderTarget(null);
-			GraphicsDevice.Clear(Color.Black);
+            // Draw texture to screen
+            GraphicsDevice.SetRenderTarget(null);
+            GraphicsDevice.Clear(Color.Black);
 
-			PercentSimStepComplete = (float)(SecondsSinceLastUpdate / DelayBetweenUpdates);
+            PercentSimStepComplete = (float)(SecondsSinceLastUpdate / DelayBetweenUpdates);
 
             DrawLife.Using(camvec, CameraAspect, Current);
             GridHelper.DrawGrid();
 
 
             base.Draw(gameTime);
-		}
+        }
 
         vec2 ScreenToGridCoordinates(vec2 pos)
         {
@@ -294,8 +294,8 @@ namespace Life
             return shifted_cam;
         }
 
-		void SimulationUpdate()
-		{
+        void SimulationUpdate()
+        {
             if (__SamplerHelper.SoftwareEmulation)
             {
                 UpdateLife._Apply(Current, Output: Temp);
@@ -305,6 +305,6 @@ namespace Life
                 UpdateLife.Apply(Current, Output: Temp);
             }
             Swap(ref Current, ref Temp);
-		}
-	}
+        }
+    }
 }

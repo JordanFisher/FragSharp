@@ -115,6 +115,16 @@ namespace FragSharpFramework
             return (float)Math.Sqrt(LengthSquared());
         }
 
+        public vec2 FlipX()
+        {
+            return new vec2(-x, y);
+        }
+
+        public vec2 FlipY()
+        {
+            return new vec2(x, -y);
+        }
+
         public static vec2 operator *(float a, vec2 v)
         {
             return new vec2(a * v.x, a * v.y);
@@ -468,6 +478,14 @@ namespace FragSharpFramework
             this.y = ((float)y) / 256.0f;
             this.z = ((float)z) / 256.0f;
             this.w = ((float)w) / 256.0f;
+        }
+
+        public color Premultiplied
+        {
+            get
+            {
+                return new color(r * a, g * a, b * a, a);
+            }
         }
 
         [Hlsl("x")]
