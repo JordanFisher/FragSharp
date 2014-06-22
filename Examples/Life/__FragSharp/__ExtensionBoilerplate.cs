@@ -135,6 +135,21 @@ namespace Life
                 v.w != w.w;
         }
 
+        public override bool Equals(object o)
+        {
+            return o is cell ? this == (cell)o : false;
+        }
+
+        public bool Equals(cell v)
+        {
+            return this == v;
+        }
+
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode() ^ w.GetHashCode();
+        }
+
         public static cell operator -(cell v)
         {
             return new cell(-v.x, -v.y, -v.z, -v.w);

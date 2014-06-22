@@ -180,6 +180,21 @@ namespace FragSharpFramework
             return v.x != w.x || v.y != w.y;
         }
 
+        public override bool Equals(object o)
+        {
+            return o is vec2 ? this == (vec2)o : false;
+        }
+
+        public bool Equals(vec2 v)
+        {
+            return this == v;
+        }
+
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode();
+        }
+
         public static implicit operator Vector2(vec2 v)
         {
             return new Vector2(v.x, v.y);
@@ -271,6 +286,21 @@ namespace FragSharpFramework
                 v.x != w.x ||
                 v.y != w.y ||
                 v.z != w.z;
+        }
+
+        public override bool Equals(object o)
+        {
+            return o is vec3 ? this == (vec3)o : false;
+        }
+
+        public bool Equals(vec3 v)
+        {
+            return this == v;
+        }
+
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
         }
 
         public static vec3 operator -(vec3 v)
@@ -412,6 +442,21 @@ namespace FragSharpFramework
                 v.y != w.y ||
                 v.z != w.z ||
                 v.w != w.w;
+        }
+
+        public override bool Equals(object o)
+        {
+            return o is vec4 ? this == (vec4)o : false;
+        }
+
+        public bool Equals(vec4 v)
+        {
+            return this == v;
+        }
+
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode() ^ w.GetHashCode();
         }
 
         public static vec4 operator -(vec4 v)
@@ -587,6 +632,21 @@ namespace FragSharpFramework
                 v.y != w.y ||
                 v.z != w.z ||
                 v.w != w.w;
+        }
+
+        public override bool Equals(object o)
+        {
+            return o is color ? this == (color)o : false;
+        }
+
+        public bool Equals(color v)
+        {
+            return this == v;
+        }
+
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode() ^ w.GetHashCode();
         }
 
         public static implicit operator Vector4(color v)
