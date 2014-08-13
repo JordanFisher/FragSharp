@@ -342,6 +342,16 @@ namespace FragSharpFramework
             return floor(255 * v + .5f) * _1;
         }
 
+        /// <summary>
+        /// Returns the greatest fint (float int) value such as _0, _1, ... that is less than the value given.
+        /// </summary>
+        /// <param name="v">The value to take the fint floor of.</param>
+        /// <returns></returns>
+        public static float fint_floor(float v)
+        {
+            v += .0005f; // We fudge the value up *just* slightly, so that e.g. if v == _3 (if v is in the _3 equivalnce class), which means abs(v-_3) < eps, then fint_floor(v) == _3.
+            return floor(255 * v) * _1;
+        }
 
         [Hlsl("floor")]
         public static float floor(float value)
