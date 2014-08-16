@@ -329,6 +329,23 @@ namespace FragSharp
         protected ParameterSymbol GetSymbol(ParameterSyntax syntax) { return GetSymbol(syntax, models); }
         protected Symbol          GetSymbol(SyntaxNode syntax)      { return GetSymbol(syntax, models); }
 
+        protected TypeSymbol GetType(ExpressionSyntax expression)
+        {
+            var model = GetModel(expression);
+            var type = model.GetTypeInfo(expression);
+            return type.Type;
+        }
+
+        protected bool IsVec(ExpressionSyntax expression)
+        {
+            var type = GetType(expression);
+            if (!TranslationLookup.SymbolMap.ContainsKey(type)) return false;
+
+            string translation = TranslationLookup.SymbolMap[type].Translation;
+
+            return translation == "float2" || translation == "float3" || translation == "float4";
+        }
+
         protected bool IsSampler(SyntaxNode param) { return IsSamplerType(GetType(GetSymbol(param))); }
 
         protected bool IsSamplerType(TypeSymbol symbol)

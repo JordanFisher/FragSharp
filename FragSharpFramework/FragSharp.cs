@@ -445,6 +445,21 @@ namespace FragSharpFramework
         [Hlsl("abs")] protected static vec3 abs(vec3 v) { return vec(abs(v.x), abs(v.y), abs(v.z)); }
         [Hlsl("abs")] protected static vec4 abs(vec4 v) { return vec(abs(v.x), abs(v.y), abs(v.z), abs(v.w)); }
 
+        
+        [Hlsl("fmod")]
+        protected static float fmod(float dividend, float divider)
+        {
+            return (float)(dividend % divider);
+        }
+
+        protected static vec2 fmod(vec2 dividend, float divider) { return vec(fmod(dividend.x, divider), fmod(dividend.y, divider)); }
+        protected static vec3 fmod(vec3 dividend, float divider) { return vec(fmod(dividend.x, divider), fmod(dividend.y, divider), fmod(dividend.z, divider)); }
+        protected static vec4 fmod(vec4 dividend, float divider) { return vec(fmod(dividend.x, divider), fmod(dividend.y, divider), fmod(dividend.z, divider), fmod(dividend.w, divider)); }
+
+        [Hlsl("fmod")] protected static vec2 fmod(vec2 dividend, vec2 divider) { return vec(fmod(dividend.x, divider.x), fmod(dividend.y, divider.y)); }
+        [Hlsl("fmod")] protected static vec3 fmod(vec3 dividend, vec3 divider) { return vec(fmod(dividend.x, divider.x), fmod(dividend.y, divider.y), fmod(dividend.z, divider.z)); }
+        [Hlsl("fmod")] protected static vec4 fmod(vec4 dividend, vec4 divider) { return vec(fmod(dividend.x, divider.x), fmod(dividend.y, divider.y), fmod(dividend.z, divider.z), fmod(dividend.w, divider.w)); }
+
 
         [Hlsl("atan2")]
         protected static float atan(float y, float x)

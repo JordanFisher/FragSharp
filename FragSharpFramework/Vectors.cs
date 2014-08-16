@@ -364,6 +364,9 @@ namespace FragSharpFramework
         [Hlsl("xyz")]
         public vec3 xyz { get { return new vec3(x, y, z); } set { x = value.x; y = value.y; z = value.z; } }
 
+        [Hlsl("yzw")]
+        public vec3 yzw { get { return new vec3(y, z, w); } set { y = value.x; z = value.y; w = value.z; } }
+
         [Hlsl("r")]
         public float r { get { return x; } set { x = value; } }
 
@@ -378,6 +381,9 @@ namespace FragSharpFramework
 
         [Hlsl("rgb")]
         public vec3 rgb { get { return xyz; } set { xyz = value; } }
+
+        [Hlsl("gba")]
+        public vec3 gba { get { return yzw; } set { yzw = value; } }
 
         [Hlsl("rg")]
         public vec2 rg { get { return xy; } set { xy = value; } }
@@ -554,6 +560,9 @@ namespace FragSharpFramework
         [Hlsl("xyz")]
         public vec3 xyz { get { return new vec3(x, y, z); } set { x = value.x; y = value.y; z = value.z; } }
 
+        [Hlsl("yzw")]
+        public vec3 yzw { get { return new vec3(y, z, w); } set { y = value.x; z = value.y; w = value.z; } }
+
         [Hlsl("r")]
         public float r { get { return x; } set { x = value; } }
 
@@ -568,6 +577,9 @@ namespace FragSharpFramework
 
         [Hlsl("rgb")]
         public vec3 rgb { get { return xyz; } set { xyz = value; } }
+
+        [Hlsl("gba")]
+        public vec3 gba { get { return yzw; } set { yzw = value; } }
 
         [Hlsl("rg")]
         public vec2 rg { get { return xy; } set { xy = value; } }

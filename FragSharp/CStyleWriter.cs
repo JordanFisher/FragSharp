@@ -386,51 +386,76 @@ namespace FragSharp
         {
             var left = expression.Left;
             var right = expression.Right;
+            bool is_vec = IsVec(left) && IsVec(right);
 
             switch (expression.OperatorToken.ValueText)
             {
                 case "==":
+                    if (is_vec) Write("all(");
+                    
                     Write("abs(");
                     CompileExpression(left);
                     Write("{0}-{0}", Space);
                     CompileExpression(right);
                     Write("){0}<{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 case "!=":
+                    if (is_vec) Write("any(");
+
                     Write("abs(");
                     CompileExpression(left);
                     Write("{0}-{0}", Space);
                     CompileExpression(right);
                     Write("){0}>{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 case "<":
+                    if (is_vec) Write("all(");
+
                     CompileExpression(left);
                     Write("{0}<{0}", Space);
                     CompileExpression(right);
                     Write("{0}-{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 case ">":
+                    if (is_vec) Write("all(");
+
                     CompileExpression(left);
                     Write("{0}>{0}", Space);
                     CompileExpression(right);
                     Write("{0}+{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 case "<=":
+                    if (is_vec) Write("all(");
+
                     CompileExpression(left);
                     Write("{0}<={0}", Space);
                     CompileExpression(right);
                     Write("{0}+{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 case ">=":
+                    if (is_vec) Write("all(");
+
                     CompileExpression(left);
                     Write("{0}>={0}", Space);
                     CompileExpression(right);
                     Write("{0}-{0}{1}", Space, eps);
+
+                    if (is_vec) Write(")");
                     break;
 
                 default:

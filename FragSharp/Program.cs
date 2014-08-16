@@ -668,13 +668,13 @@ using FragSharpFramework;
                 Console.WriteLine("FragSharp requires two arguments: Source directory; Output directory.");
                 Console.WriteLine("Defaulting to debug directories.");
 
-                ParseArgs(new string[] {
-                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/",
-                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Debug/" });
-
                 //ParseArgs(new string[] {
-                //    /* Source */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/GpuSim.csproj",
-                //    /* Output */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/bin/x86/Debug/" });
+                //    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/",
+                //    /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Debug/" });
+
+                ParseArgs(new string[] {
+                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/GpuSim.csproj",
+                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/bin/x86/Debug/" });
             }
             else
             {
