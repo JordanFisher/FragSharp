@@ -287,8 +287,10 @@ namespace FragSharp
             string equality = "";
             foreach (var variable in specialization)
             {
-                //equality += string.Format("{1}{0}=={0}{2}", Space, variable.Key.Name, variable.Value);
-                equality += string.Format("abs((float)({1}{0}-{0}{2})){0}<{0}{3}", Space, variable.Key.Name, variable.Value, eps);
+                if (variable.Key.ToString() == "bool")
+                    equality += string.Format("{1}{0}=={0}{2}", Space, variable.Key.Name, variable.Value);
+                else
+                    equality += string.Format("abs((float)({1}{0}-{0}{2})){0}<{0}{3}", Space, variable.Key.Name, variable.Value, eps);
 
                 if (variable.Key != specialization.Last().Key)
                     equality += string.Format("{0}&&{0}", Space);

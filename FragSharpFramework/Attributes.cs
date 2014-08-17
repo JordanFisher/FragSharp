@@ -9,10 +9,17 @@ namespace FragSharpFramework
 {
     public enum TranslationType { Substitute, ReplaceExpression, UnderscoreAppend };
 
+    public class Vals
+    {
+        [Vals(true, false)] public class BoolAttribute : Attribute { }
+        public static readonly bool[] Bool = new bool[] { true, false };
+    }
+
     public class ValsAttribute : Attribute
     {
         public ValsAttribute(params int[] vals) { }
         public ValsAttribute(params float[] vals) { }
+        public ValsAttribute(params bool[] vals) { }
     }
 
     public enum CastStyle { ExplicitCasts, ImplicitCast, NoCasts };

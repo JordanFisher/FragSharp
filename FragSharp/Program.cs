@@ -502,7 +502,12 @@ namespace FragSharp
                         foreach (var arg in speciliazation_vals)
                         {
                             var _specialization = new Dictionary<Symbol, string>(specialization);
-                            _specialization.Add(symbol, arg.Value.ToString());
+
+                            string val_str = arg.Value.ToString();
+                            if (val_str == "True") val_str = "true";
+                            else if (val_str == "False") val_str = "false";
+
+                            _specialization.Add(symbol, val_str);
 
                             Specializations.Add(_specialization);
                         }
