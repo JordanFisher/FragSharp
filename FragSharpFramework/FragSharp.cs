@@ -96,6 +96,15 @@ namespace FragSharpFramework
                 return t.ConvertFrom(base[index]);
             }
         }
+
+        new public Type this[int i, int j]
+        {
+            get
+            {
+                Type t = default(Type);
+                return t.ConvertFrom(base[i, j]);
+            }
+        }
     }
 
     [Hlsl("sampler")]
@@ -155,6 +164,14 @@ namespace FragSharpFramework
             get
             {
                 return texture_lookup(this, __SamplerHelper.TextureCoord + DxDy * (vec2)index);
+            }
+        }
+
+        public color this[int i, int j]
+        {
+            get
+            {
+                return texture_lookup(this, __SamplerHelper.TextureCoord + DxDy * vec(i, j));
             }
         }
     }

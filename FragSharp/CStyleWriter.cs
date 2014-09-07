@@ -65,7 +65,15 @@ namespace FragSharp
 
                 WriteLine("}");
 
-                var compilation = new CompiledMethod(GetString(), ReferencedMethods);
+                var compilation = new CompiledMethod(GetString(), ReferencedMethods, ReferencedForeignVars);
+
+                if (ReferencedForeignVars.Any(_symbol => IsSampler(_symbol)) &&
+                    !(method.ParameterList.Parameters.Count() > 0 && method.ParameterList.Parameters.Any(param => IsSampler(param))))
+                {
+                    int first_paren = compilation.Compilation.IndexOf('(');
+                    compilation.Compilation = compilation.Compilation.Insert(first_paren + 1, VertexToPixelDecl + ',' + Space);
+                    compilation.UsesSampler = true;
+                }
 
                 SymbolCompilation.Add(symbol, compilation);
 
@@ -81,7 +89,6 @@ namespace FragSharp
 
             Write(" ");
             WriteFullMethodName(symbol);
-            //Write(" {0}", method.Identifier.ValueText);
             
             Write("(");
 
@@ -172,7 +179,7 @@ namespace FragSharp
             CompileExpression(creation.Type);
 
             Write("(");
-            CompileArgumentList(creation.ArgumentList);
+            CompileArgumentList(creation.ArgumentList, false);
             Write(")");
         }
 
@@ -275,12 +282,12 @@ namespace FragSharp
             }
         }
 
-        override protected void CompileArgumentList(ArgumentListSyntax list)
+        override protected void CompileArgumentList(ArgumentListSyntax list, bool AddVertexToPixelVar)
         {
             var args = list.Arguments;
 
             // If there is a sampler paramter we need to pass in the VertexToPixel variable.
-            if (args.Count > 0 && args.Any(arg => IsSampler(arg)))
+            if (AddVertexToPixelVar || args.Count > 0 && args.Any(arg => IsSampler(arg)))
             {
                 Write(VertexToPixelVar + Comma);
             }

@@ -180,6 +180,16 @@ namespace FragSharpFramework
             return v.x != w.x || v.y != w.y;
         }
 
+        public static bool operator >(vec2 v, vec2 w)
+        {
+            return v.x > w.x && v.y > w.y;
+        }
+
+        public static bool operator <(vec2 v, vec2 w)
+        {
+            return v.x < w.x && v.y < w.y;
+        }
+
         public override bool Equals(object o)
         {
             return o is vec2 ? this == (vec2)o : false;
@@ -677,7 +687,7 @@ namespace FragSharpFramework
         }        
 
         public static readonly color Zero    = new color(0f, 0f, 0f, 0f);
-        public static readonly color Nothing = new color(0, 0, 0, 0);
+        public static readonly color Nothing = new color(0f, 0f, 0f, 0f);
 
         // -------------------------------------------------------------------
 

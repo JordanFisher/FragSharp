@@ -32,11 +32,17 @@ namespace FragSharp
         {
             public string Compilation;
             public List<Symbol> ReferencedMethods;
+            public List<Symbol> ReferencedForeignVars;
 
-            public CompiledMethod(string Compilation, List<Symbol> ReferencedMethods)
+            public bool UsesSampler;
+
+            public CompiledMethod(string Compilation, List<Symbol> ReferencedMethods, List<Symbol> ReferencedForeignVars)
             {
                 this.Compilation = Compilation;
                 this.ReferencedMethods = ReferencedMethods;
+                this.ReferencedForeignVars = ReferencedForeignVars;
+
+                UsesSampler = false;
             }
         }
 
@@ -110,6 +116,7 @@ namespace FragSharp
         protected Dictionary<Symbol, CompiledMethod> SymbolCompilation;
 
         protected List<Symbol> ReferencedMethods = new List<Symbol>();
+        protected List<Symbol> ReferencedForeignVars = new List<Symbol>();
 
         protected StringWriter writer = new StringWriter();
 
@@ -318,7 +325,7 @@ namespace FragSharp
         abstract protected void CompileVariableDeclaration(VariableDeclarationSyntax declaration);
         abstract protected void CompileVariableDeclarator(VariableDeclaratorSyntax declarator, TypeSyntax type);
         abstract protected void CompileEqualsValueClause(EqualsValueClauseSyntax clause);
-        abstract protected void CompileArgumentList(ArgumentListSyntax list);
+        abstract protected void CompileArgumentList(ArgumentListSyntax list, bool AddVertexToPixelVar);
 
         abstract protected string VertexToPixelVar { get; }
         abstract protected string VertexToPixelType { get; }
@@ -347,7 +354,7 @@ namespace FragSharp
         }
 
         protected bool IsSampler(SyntaxNode param) { return IsSamplerType(GetType(GetSymbol(param))); }
-
+        protected bool IsSampler(Symbol symbol) { return IsSamplerType(GetType(symbol)); }
         protected bool IsSamplerType(TypeSymbol symbol)
         {
             if (symbol == null) return false;

@@ -77,7 +77,9 @@ namespace FragSharp
             var symbol = GetSymbol(argument);
             var type = GetType(symbol);
 
-            if (type.Name == "vec2")
+            //if (expression.ToFullString().Contains("Far")) Console.Write("!");
+
+            if (type != null && type.Name == "vec2")
             {
                 Write("tex2D(");
                 CompileExpression(expression.Expression);
@@ -85,7 +87,7 @@ namespace FragSharp
                 CompileExpression(argument.Expression);
                 Write(")");
             }
-            else if (type.Name == "RelativeIndex")
+            else if (type != null && type.Name == "RelativeIndex")
             {
                 // Without .5,.5 shift
                 Write("tex2D(");
@@ -96,9 +98,8 @@ namespace FragSharp
                 Write("){0}*{0}", Space);
                 CompileExpression(expression.Expression);
                 Write("_{0})", Sampler.DxDySuffix);
-                //Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
 
-                // With .5,.5 shift
+                // With .5,.5 shift. This may be needed on some architectures due to rounding/interpolation issues.
                 //Write("tex2D(");
                 //CompileExpression(expression.Expression);
                 //Write(Comma);
@@ -108,6 +109,30 @@ namespace FragSharp
                 ////CompileExpression(expression.Expression);
                 ////Write("_d)", Space);
                 //Write("float2(1.0 / 1024.0, 1.0 / 1024.0))");
+            }
+            else
+            {
+                //Write("tex2D(");
+                //CompileExpression(expression.Expression);
+                //Write(Comma);
+                //Write("float2(2,1) * float2(1,1)/16.0)");
+
+                // Assume form [i, j]
+                Write("tex2D(");
+                CompileExpression(expression.Expression);
+                Write(Comma);
+                Write("float2(", Space);
+
+                var arg1 = expression.ArgumentList.Arguments[0];
+                CompileExpression(arg1.Expression);
+                Write("+.5,.5+" + Space);
+                var arg2 = expression.ArgumentList.Arguments[1];
+                CompileExpression(arg2.Expression);
+
+                //Write(") * float2(1,1)/16.0)");
+                Write("){0}*{0}", Space);
+                CompileExpression(expression.Expression);
+                Write("_{0})", Sampler.DxDySuffix);
             }
         }
 
@@ -152,7 +177,14 @@ namespace FragSharp
                             // If the funciton has a special compilation, do that special compilation.
                             var hex_literal = expression.ArgumentList.Arguments[0].Expression as LiteralExpressionSyntax;
                             var float_literal = expression.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax;
-                            Write("float4({0}, {1})", HexToVec4(hex_literal.ToString()), float_literal.ToString());
+                            //Write("float4({0}, {1})", HexToVec4(hex_literal.ToString()), float_literal.ToString());
+                            
+                            Write("float4(");
+                            Write(HexToVec4(hex_literal.ToString()));
+                            Write(", ");
+                            CompileLiteralExpression(float_literal);
+                            Write(")");
+                            
                             break;
 
                         case Special.rgb_hex:
@@ -169,22 +201,24 @@ namespace FragSharp
                     Write(translation_info.Translation);
 
                     Write("(");
-                    CompileArgumentList(expression.ArgumentList);
+                    CompileArgumentList(expression.ArgumentList, false);
                     Write(")");
                 }
                 else
                 {
                     // Otherwise compile the function and note that we are using it.
                     var writer = new HlslWriter(this);
-                    writer.CompileMethod(symbol);
+                    var result = writer.CompileMethod(symbol);
 
                     ReferencedMethods.AddUnique(SymbolCompilation[symbol].ReferencedMethods);
                     ReferencedMethods.AddUnique(symbol);
 
+                    ReferencedForeignVars.AddUnique(writer.ReferencedForeignVars);
+
                     CompileExpression(expression.Expression);
 
                     Write("(");
-                    CompileArgumentList(expression.ArgumentList);
+                    CompileArgumentList(expression.ArgumentList, result.UsesSampler);
                     Write(")");
                 }
             }
@@ -252,7 +286,16 @@ namespace FragSharp
                             }
                             else
                             {
-                                Write("ERROR(Non-local symbol : {0})", syntax);
+                                //Write("ERROR(Non-local symbol : {0})", syntax);
+
+                                string name = syntax.Identifier.ValueText;
+                                if (IsSamplerType(GetType(symbol)))
+                                    name = "fs_param_" + name;
+                                else
+                                    name = "foreign_" + name;
+
+                                Write(name);
+                                ReferencedForeignVars.AddUnique(symbol);
                             }
                         }
                     }
@@ -262,26 +305,11 @@ namespace FragSharp
 
         override protected void CompileDefaultInitialization(VariableDeclaratorSyntax declarator, TypeSyntax type)
         {
-            //var identifier = declarator.Identifier;
-
             Write("=");
             Write(Space);
             Write("(");
             CompileExpression(type);
             Write(")0");
-
-            //var info = models[identifier.SyntaxTree].GetDeclaredSymbol(type);
-
-            //var symbol = info.Symbol;
-
-            //if (TranslationLookup.SymbolMap.ContainsKey(symbol))
-            //{
-            //    Write("({0})0", TranslationLookup.SymbolMap[symbol]);
-            //}
-            //else
-            //{
-            //    Write("ERROR(Can't given a default value to this unintialized variable : {0})", declarator);
-            //}
         }
 
         override protected string VertexToPixelVar { get { return "psin"; } }

@@ -188,6 +188,8 @@ namespace FragSharp
                     {
                         var field = (FieldSymbol)member;
 
+                        if (field.ToString().Contains("ColorArray")) Console.Write("!");
+
                         if (field.IsReadOnly)
                         {
                             var decleration = member.DeclaringSyntaxNodes.First() as VariableDeclaratorSyntax;
@@ -200,13 +202,22 @@ namespace FragSharp
                                 var constructor_info = Models[creation.SyntaxTree].GetSymbolInfo(creation);
                                 var constructor = constructor_info.Symbol;
 
-                                if (constructor != null && SymbolMap.ContainsKey(constructor))
+                                string translation = null;
+                                try
                                 {
+                                    //if (constructor != null)// && SymbolMap.ContainsKey(constructor))
                                     var writer = new HlslWriter(Models, Compilation);
 
                                     writer.CompileExpression(creation);
-                                    var translation = writer.GetString();
+                                    translation = writer.GetString();
+                                }
+                                catch (Exception e)
+                                {
+                                    
+                                }
 
+                                if (translation != null)
+                                {
                                     SymbolMap.Add(member, new MapInfo(translation, TranslationType.ReplaceExpression));
                                 }
                             }
@@ -678,8 +689,8 @@ using FragSharpFramework;
                 //    /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Debug/" });
 
                 ParseArgs(new string[] {
-                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/GpuSim.csproj",
-                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Pinnacle/GpuSim/GpuSim/GpuSim/bin/x86/Debug/" });
+                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
+                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/" });
             }
             else
             {

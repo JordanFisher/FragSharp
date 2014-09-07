@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using Roslyn.Compilers.CSharp;
@@ -46,10 +47,17 @@ namespace FragSharp
             var LocalFragmentLookup = CompileFragmentSignature(fragment_method);
             EndLine();
 
+            // Referenced foreign variables
+            Write(SpaceFormat(ReferencedForeignVarsPreamble));
+            EndLine();
+            Write("<$0$>"); // This is where we will insert referenced foreign variables.
+
+            WriteLine();
+
             // Referenced methods
             Write(SpaceFormat(ReferencedMethodsPreamble));
             EndLine();
-            Write("<$0$>"); // This is where we will insert referenced methods.
+            Write("<$1$>"); // This is where we will insert referenced methods.
             
             WriteLine();
 
@@ -87,12 +95,43 @@ namespace FragSharp
 
             // We must wait until after compiling the shader to know which methods that shader references.
             string methods = GetReferencedMethods();
+
+            // We must wait until after compiling the shader to know which foreign variables that shader references.
+            string foreign_vars = GetForeignVars();
             
             // Now get the full string written so far and insert the referenced methods.
             string fragment = GetString();
-            fragment = SpecialFormat(fragment, methods);
+            fragment = SpecialFormat(fragment, foreign_vars, methods);
 
             return fragment;
+        }
+
+        virtual protected string GetForeignVars()
+        {
+            string foreign_vars = string.Empty;
+
+            if (ReferencedForeignVars.Count == 0)
+                return foreign_vars;
+
+            var hold_writer = writer;
+            writer = new StringWriter();
+
+            var last = ReferencedForeignVars.Last();
+            foreach (var foreign_var in ReferencedForeignVars)
+            {
+                //if shader
+                CompileSamplerParameter_Foreign(foreign_var);
+                WriteLine();
+                // else
+                //var param = new Param(GetType(foreign_var).Name, type, name, mapped_name, Param.ParamType.VertexParam);
+                //Params.Add(param);
+                //AllParams.Add(param);
+            }
+
+            foreign_vars = writer.ToString();
+            writer = hold_writer;
+
+            return foreign_vars;
         }
 
         public string CompileShaderBoilerplate(NamedTypeSymbol Symbol, List<Dictionary<Symbol, string>> Specializations)
@@ -162,11 +201,11 @@ namespace FragSharp
         {
             BeginLine("public static void {0}(", FunctionName);
 
-            foreach (var param in AllParams)
+            foreach (var param in NonForeignParams)
             {
                 Write("{0} {1}", param.TypeName, param.Name);
 
-                if (ExtraParams != null || param != AllParams.Last())
+                if (ExtraParams != null || param != NonForeignParams.Last())
                 {
                     Write(",{0}", Space);
                 }
@@ -184,11 +223,11 @@ namespace FragSharp
         {
             BeginLine("{0}(", UsingName);
 
-            foreach (var param in AllParams)
+            foreach (var param in NonForeignParams)
             {
                 Write(param.Name);
 
-                if (param != AllParams.Last())
+                if (param != NonForeignParams.Last())
                 {
                     Write(",{0}", Space);
                 }
@@ -328,6 +367,8 @@ namespace FragSharp
             public string TypeName, MappedType, Name, MappedName;
             public ParamType Type;
 
+            public bool Foreign;
+
             public Param(string TypeName, string MappedType, string Name, string MappedName, ParamType Type)
             {
                 this.TypeName = TypeName;
@@ -347,6 +388,14 @@ namespace FragSharp
         /// Parameters that are used in the vertex/fragment shader, INCLUDING parameters factored out as constant specializations.
         /// </summary>
         List<Param> AllParams = new List<Param>();
+
+        IEnumerable<Param> NonForeignParams
+        {
+            get
+            {
+                return AllParams.Where(p => !p.Foreign);
+            }
+        }
 
         void CompileVertexSignature(MethodDeclarationSyntax method)
         {
@@ -510,6 +559,29 @@ namespace FragSharp
             }
         }
 
+        void CompileSamplerParameter_Foreign(Symbol symbol)
+        {
+            SamplerNumber++;
+
+            string name = symbol.Name;
+            string mapped_name = FragmentShaderParameterPrefix + name;
+
+            var type = GetType(symbol);
+            var sampler_base = GetSamplerBase(type);
+            string address_u = TypeToAddress(sampler_base.TypeArguments[1]);
+            string address_v = TypeToAddress(sampler_base.TypeArguments[2]);
+            string min_filter = TypeToFilter(sampler_base.TypeArguments[3]);
+            string mag_filter = TypeToFilter(sampler_base.TypeArguments[4]);
+            string mip_filter = TypeToFilter(sampler_base.TypeArguments[5]);
+
+            Write(SamplerTemplate, Tab, SamplerNumber, mapped_name, address_u, address_v, min_filter, mag_filter, mip_filter);
+
+            var param = new Param("Texture2D", "shader", name, mapped_name, Param.ParamType.FragmentParam);
+            param.Foreign = true;
+            Params.Add(param);
+            AllParams.Add(param);
+        }
+
         void CompileSamplerParameter(ParameterSyntax parameter, TypeSymbol symbol)
         {
             SamplerNumber++;
@@ -549,6 +621,9 @@ sampler {2} : register(s{1}) = sampler_state
 
 const string ReferencedMethodsPreamble =
 @"// The following methods are included because they are referenced by the fragment shader.";
+
+const string ReferencedForeignVarsPreamble =
+@"// The following variables are included because they are referenced but are not function parameters. Their values will be set at call time.";
 
 const string VertexMethodParameters =
 @"// The following are variables used by the vertex shader (vertex parameters).";

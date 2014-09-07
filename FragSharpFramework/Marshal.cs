@@ -43,5 +43,10 @@ namespace FragSharpFramework
         {
             return field;
         }
+
+        public static Texture Marshal(Sampler sampler)
+        {
+            return sampler.Texture;
+        }
     }
 }
