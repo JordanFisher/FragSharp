@@ -230,12 +230,16 @@ namespace FragSharp
 
     class Paths
     {
-        public readonly string CompilerDir, FrameworkDir, ProjectDir, TargetDir, BoilerRoot, ShaderCompileDir, ShaderBuildDir, ProjectPath;
+        public readonly string
+            CompilerDir, FrameworkDir, ProjectDir, TargetDir, BoilerRoot, ShaderCompileDir, ShaderBuildDir, ProjectPath,
+            Configuration;
+
 
         public Paths(string[] args)
         {
             ProjectPath = args[0];
             TargetDir = args[1];
+            Configuration = args[2];
 
             ProjectDir = Path.GetDirectoryName(ProjectPath);
 
@@ -679,18 +683,28 @@ using FragSharpFramework;
 
         static void ParseArgs(string[] args)
         {
-            if (args.Length < 2)
+            if (args.Length < 3)
             {
-                Console.WriteLine("FragSharp requires two arguments: Source directory; Output directory.");
+                Console.WriteLine("FragSharp requires three arguments: Source directory, Output directory, Configuration.");
                 Console.WriteLine("Defaulting to debug directories.");
 
                 //ParseArgs(new string[] {
-                //    /* Source */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/",
-                //    /* Output */ "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Debug/" });
+                //    /* Source */        "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/",
+                //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Release/",
+                //    /* Configuration */ "Debug"
+                //});
+
+                //ParseArgs(new string[] {
+                //    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
+                //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/",
+                //    /* Configuration */ "Debug"
+                //});
 
                 ParseArgs(new string[] {
-                    /* Source */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
-                    /* Output */ "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/" });
+                    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
+                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Release/",
+                    /* Configuration */ "Release"
+                });
             }
             else
             {
@@ -699,6 +713,18 @@ using FragSharpFramework;
         }
 
         private static void Main(string[] args)
+        {
+            try
+            {
+                _Main(args);
+            }
+            catch (Exception e)
+            {
+                File.WriteAllText("dump.report", e.ToString());
+            }
+        }
+
+        private static void _Main(string[] args)
         {
             ParseArgs(args);
 
@@ -792,6 +818,7 @@ using FragSharpFramework;
 
                 EffectProcessor effectProcessor = new EffectProcessor();
                 effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
+                //effectProcessor.DebugMode = EffectProcessorDebugMode.Optimize;
                 var effect = effectProcessor.Process(new EffectContent { EffectCode = fx }, new MyProcessorContext());
 
                 byte[] ShaderObject = effect.GetEffectCode();
@@ -904,36 +931,46 @@ using FragSharpFramework;
 
         static void CompileUserCode()
         {
-            //var sln = Solution.LoadStandAloneProject(BuildPaths.ProjectPath).Solution;
-            //sln.Projects.First().GetCompilation();
-            //foreach (var doc in sln.Projects.First().DocumentIds)
-            //    sln = sln.ReloadDocument(doc);
-            //sln.Projects.First().GetCompilation();
+            //// Get all the relevant source files
+            //var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
+            //files.AddRange(Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories).ToList());
 
-            // Get all the relevant source files
-            var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
-            files.AddRange(Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories).ToList());
+            //// Get all the syntax trees from the source files
+            //List<SyntaxTree> Trees = new List<SyntaxTree>();
+            //foreach (var file in files)
+            //{
+            //    Trees.Add(SyntaxTree.ParseFile(file));
+            //}
 
-            // Get all the syntax trees from the source files
-            List<SyntaxTree> Trees = new List<SyntaxTree>();
-            foreach (var file in files)
-            {
-                Trees.Add(SyntaxTree.ParseFile(file));
-            }
+            //Nodes = new List<SyntaxNode>();
+            //foreach (var tree in Trees)
+            //{
+            //    Nodes.AddRange(tree.GetRoot().DescendantNodes());
+            //}
+
+            //// Compile all the sources together
+            //SourceCompilation = Compilation.Create("MyCompilation",
+            //                                 syntaxTrees: Trees,
+            //                                 references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
+
+            DocumentId id;
+            var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, configuration: BuildPaths.Configuration);
+            //var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, configuration: "Release");
+            //var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath);
+            foreach (var pre in proj.ParseOptions.PreprocessorSymbolNames)
+                Console.WriteLine(pre);
+            foreach (var file in Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories))
+                proj = proj.AddDocument(file, out id);
+            SourceCompilation = (Compilation)proj.GetCompilation();
 
             Nodes = new List<SyntaxNode>();
-            foreach (var tree in Trees)
+            foreach (var tree in SourceCompilation.SyntaxTrees)
             {
                 Nodes.AddRange(tree.GetRoot().DescendantNodes());
             }
 
-            // Compile all the sources together
-            SourceCompilation = Compilation.Create("MyCompilation",
-                                             syntaxTrees: Trees,
-                                             references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
-
             Models = new Dictionary<SyntaxTree, SemanticModel>();
-            foreach (var tree in Trees)
+            foreach (var tree in SourceCompilation.SyntaxTrees)
             {
                 var model = SourceCompilation.GetSemanticModel(tree);
                 Models.Add(tree, model);
