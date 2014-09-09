@@ -71,7 +71,8 @@ namespace FragSharp
                     !(method.ParameterList.Parameters.Count() > 0 && method.ParameterList.Parameters.Any(param => IsSampler(param))))
                 {
                     int first_paren = compilation.Compilation.IndexOf('(');
-                    compilation.Compilation = compilation.Compilation.Insert(first_paren + 1, VertexToPixelDecl + ',' + Space);
+                    compilation.Compilation = compilation.Compilation.Insert(first_paren + 1,
+                        VertexToPixelDecl + (method.ParameterList.Parameters.Count() > 0 ? ',' + Space : string.Empty));
                     compilation.UsesSampler = true;
                 }
 
@@ -102,13 +103,16 @@ namespace FragSharp
             }
 
             // Add each parameter, comma separated
-            var last = Params.Last();
-            foreach (var parameter in Params)
+            if (Params.Count > 0)
             {
-                CompileMethodParameter(parameter);
+                var last = Params.Last();
+                foreach (var parameter in Params)
+                {
+                    CompileMethodParameter(parameter);
 
-                if (parameter != last)
-                    Write(Comma);
+                    if (parameter != last)
+                        Write(Comma);
+                }
             }
 
             Write(")");
@@ -289,8 +293,8 @@ namespace FragSharp
             // If there is a sampler paramter we need to pass in the VertexToPixel variable.
             if (AddVertexToPixelVar || args.Count > 0 && args.Any(arg => IsSampler(arg)))
             {
-                Write(VertexToPixelVar + Comma);
-            }
+                Write(VertexToPixelVar + (args.Count > 0 ? Comma : string.Empty));
+            } 
 
             // Write each argument
             foreach (var argument in args)

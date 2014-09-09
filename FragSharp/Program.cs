@@ -694,17 +694,17 @@ using FragSharpFramework;
                 //    /* Configuration */ "Debug"
                 //});
 
-                //ParseArgs(new string[] {
-                //    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
-                //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/",
-                //    /* Configuration */ "Debug"
-                //});
-
                 ParseArgs(new string[] {
                     /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
-                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Release/",
-                    /* Configuration */ "Release"
+                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/",
+                    /* Configuration */ "Debug"
                 });
+
+                //ParseArgs(new string[] {
+                //    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
+                //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Release/",
+                //    /* Configuration */ "Release"
+                //});
             }
             else
             {
@@ -817,8 +817,8 @@ using FragSharpFramework;
                 string fx = File.ReadAllText(file);
 
                 EffectProcessor effectProcessor = new EffectProcessor();
-                effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
-                //effectProcessor.DebugMode = EffectProcessorDebugMode.Optimize;
+                //effectProcessor.DebugMode = EffectProcessorDebugMode.Debug;
+                effectProcessor.DebugMode = EffectProcessorDebugMode.Optimize;
                 var effect = effectProcessor.Process(new EffectContent { EffectCode = fx }, new MyProcessorContext());
 
                 byte[] ShaderObject = effect.GetEffectCode();
