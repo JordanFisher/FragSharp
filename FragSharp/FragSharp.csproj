@@ -54,7 +54,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FragSharpFramework">
-      <HintPath>..\FragSharpFramework\bin\x86\Release\FragSharpFramework.dll</HintPath>
+      <HintPath>..\FragSharpFramework\bin\x86\Debug\FragSharpFramework.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Build.Framework" />

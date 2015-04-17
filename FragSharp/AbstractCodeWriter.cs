@@ -110,6 +110,11 @@ namespace FragSharp
         protected void WriteFullMethodName(MethodSymbol method)
         {
             string name = method.ContainingNamespace.Name + "__" + method.ContainingType.Name + "__" + method.Name;
+            foreach (var param in method.Parameters)
+            {
+                name += "__" + param.Type.Name;
+            }
+
             Write(name.Replace(".", "__"));
         }
 

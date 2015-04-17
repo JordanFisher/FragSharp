@@ -392,6 +392,20 @@ namespace FragSharpFramework
         [Hlsl("floor")] public static vec4 floor(vec4 v) { return vec(floor(v.x), floor(v.y), floor(v.z), floor(v.w)); }
 
 
+        [Hlsl("a")]
+        public static float ceiling(float value)
+        {
+            return (float)Math.Ceiling(value);
+        }
+
+        [Hlsl("ceiling")]
+        public static vec2 ceiling(vec2 v) { return vec(ceiling(v.x), ceiling(v.y)); }
+        [Hlsl("ceiling")]
+        public static vec3 ceiling(vec3 v) { return vec(ceiling(v.x), ceiling(v.y), ceiling(v.z)); }
+        [Hlsl("ceiling")]
+        public static vec4 ceiling(vec4 v) { return vec(ceiling(v.x), ceiling(v.y), ceiling(v.z), ceiling(v.w)); }
+
+
         [Hlsl("round")]
         public static float round(float value)
         {

@@ -695,9 +695,9 @@ using FragSharpFramework;
                 //});
 
                 ParseArgs(new string[] {
-                    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
-                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Debug/",
-                    /* Configuration */ "Debug"
+                    /* Source */        "C:/Users/Jordan/Desktop/Dir/Games/WAL/Game/Game.csproj",
+                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Games/WAL/Game/bin/x86/Debug/",
+                    /* Configuration */ "Debug",
                 });
 
                 //ParseArgs(new string[] {
@@ -904,6 +904,12 @@ using FragSharpFramework;
 
             // Build the shaders
             string buildError = contentBuilder.Build();
+
+            if (buildError != null)
+            {
+                Console.WriteLine(buildError);
+                return;
+            }
 
             /* fxc build, debug, and asm output
             if (buildError != null && buildError.Length > 0)

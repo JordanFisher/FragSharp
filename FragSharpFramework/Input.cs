@@ -88,6 +88,15 @@ namespace FragSharpHelper
             }
         }
 
+        public static bool LeftMouseReleased
+        {
+            get
+            {
+                return CurMouse.LeftButton == ButtonState.Released &&
+                       PrevMouse.LeftButton == ButtonState.Pressed;
+            }
+        }
+
         public static bool RightMousePressed
         {
             get
@@ -102,6 +111,15 @@ namespace FragSharpHelper
             get
             {
                 return CurMouse.RightButton == ButtonState.Pressed;
+            }
+        }
+
+        public static bool RightMouseReleased
+        {
+            get
+            {
+                return CurMouse.RightButton == ButtonState.Released &&
+                       PrevMouse.RightButton == ButtonState.Pressed;
             }
         }
 

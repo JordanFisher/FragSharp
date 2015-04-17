@@ -105,6 +105,12 @@ namespace FragSharpFramework
             return string.Format("{0}, {1}", x, y);
         }
 
+        public static vec2 Parse(string s)
+        {
+            var parts = s.Split(',');
+            return new vec2(float.Parse(parts[0]), float.Parse(parts[1]));
+        }
+
         public float LengthSquared()
         {
             return x * x + y * y;
@@ -401,6 +407,20 @@ namespace FragSharpFramework
         [Hlsl("ba")]
         public vec2 ba { get { return zw; } set { zw = value; } }
 
+        public float this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0: return x;
+                    case 1: return y;
+                    case 2: return z;
+                    case 3: return w;
+                    default: throw new Exception("Invalid index.");
+                }
+            }
+        }
 
         public static vec4 operator *(float a, vec4 v)
         {
@@ -490,7 +510,7 @@ namespace FragSharpFramework
             return new vec4(v.x, v.y, v.z, v.w);
         }
 
-        public static implicit operator color(vec4 v)
+        public static explicit operator color(vec4 v)
         {
             return new color(v.x, v.y, v.z, v.w);
         }
