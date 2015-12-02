@@ -249,6 +249,13 @@ namespace FragSharp
 
             CompilerDir  = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             FrameworkDir = Path.Combine("FragSharpFramework", CompilerDir);
+
+            Console.WriteLine("FragSharp directory inputs:");
+            Console.WriteLine("  Project          <- {0}", ProjectDir);
+            Console.WriteLine("  Compiled Shaders <- {0}", ShaderCompileDir);
+            Console.WriteLine("  Built Shaders    <- {0}", ShaderBuildDir);
+            Console.WriteLine("  Compiler         <- {0}", CompilerDir);
+            Console.WriteLine("  Framework        <- {0}", FrameworkDir);
         }
     }
 
@@ -323,7 +330,7 @@ namespace FragSharp
             return suffix;
         }
 
-        public string SpecializationFileName(Dictionary<Symbol, string> specialization)
+        public static string SpecializationFileName(NamedTypeSymbol symbol, Dictionary<Symbol, string> specialization)
         {
             string suffix = "";
             foreach (var variable in specialization)
@@ -331,19 +338,14 @@ namespace FragSharp
                 suffix += string.Format("_{0}={1}", variable.Key.Name, variable.Value);
             }
 
-            return Symbol.Name + suffix;
+            return symbol.Name + suffix;
         }
 
         public void WriteLoadCode(StringWriter BoilerWriter, string Tab)
         {
             if (!IsValidShader()) return;
 
-            foreach (var specialization in Specializations)
-            {
-                string filename = SpecializationFileName(specialization);
-                string suffix = SpecializationVarSuffix(specialization);
-                BoilerWriter.WriteLine("{0}{0}{0}{1}.{2}.CompiledEffect{3} = Content.Load<Effect>(\"FragSharpShaders/{4}\");", Tab, Symbol.ContainingNamespace, Symbol.Name, suffix, filename);
-            }
+            BoilerWriter.WriteLine("{0}{0}{0}{1}.{2}.Init();", Tab, Symbol.ContainingNamespace, Symbol.Name);
         }
 
         public void CompileAndWrite(StringWriter BoilerWriter, string CompileDir)
@@ -352,7 +354,7 @@ namespace FragSharp
 
             foreach (var specialization in Specializations)
             {
-                string name = SpecializationFileName(specialization);
+                string name = SpecializationFileName(Symbol, specialization);
 
                 var compiled = Compile(specialization, specialization == Specializations.Last());
 
@@ -681,11 +683,18 @@ using FragSharpFramework;
             return null;
         }
 
+        public static bool LocalRun = false;
         static void ParseArgs(string[] args)
         {
             if (args.Length < 3)
             {
-                Console.WriteLine("FragSharp requires three arguments: Source directory, Output directory, Configuration.");
+                LocalRun = true;
+
+                Console.WriteLine("FragSharp requires three arguments: Source directory, Output directory, Configuration");
+                Console.WriteLine("{0} arguments given:", args.Length);
+                for (int i = 0; i < args.Length; i++) {
+                    Console.WriteLine("  {0} {1}", i, args[i]);
+                }
                 Console.WriteLine("Defaulting to debug directories.");
 
                 //ParseArgs(new string[] {
@@ -693,18 +702,12 @@ using FragSharpFramework;
                 //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Projects/FragSharp/Examples/Life/bin/x86/Release/",
                 //    /* Configuration */ "Debug"
                 //});
-
+                
                 ParseArgs(new string[] {
-                    /* Source */        "C:/Users/Jordan/Desktop/Dir/Games/WAL/Game/Game.csproj",
-                    /* Output */        "C:/Users/Jordan/Desktop/Dir/Games/WAL/Game/bin/x86/Debug/",
+                    /* Source */        "C:/Users/Kick Ass/Desktop/WAL/Game/Game.csproj",
+                    /* Output */        "C:/Users/Kick Ass/Desktop/WAL/Game/bin/x86/Debug/",
                     /* Configuration */ "Debug",
                 });
-
-                //ParseArgs(new string[] {
-                //    /* Source */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/Terracotta.csproj",
-                //    /* Output */        "C:/Users/Jordan/Desktop/Dir/Pwnee/Games/Terracotta/Terracotta/Terracotta/Terracotta/bin/x86/Release/",
-                //    /* Configuration */ "Release"
-                //});
             }
             else
             {
@@ -716,18 +719,37 @@ using FragSharpFramework;
         {
             try
             {
-                _Main(args);
+                ParseArgs(args);
             }
             catch (Exception e)
             {
+                Console.WriteLine("FragSharp encountered an error while parsing the command line options:");
+                Console.WriteLine(e);
+
+                File.WriteAllText("dump.report", e.ToString());
+            }
+
+            if (LocalRun)
+            {
+                _Main();
+                return;
+            }
+
+            try
+            {
+                _Main();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("FragSharp encountered an error:");
+                Console.WriteLine(e);
+
                 File.WriteAllText("dump.report", e.ToString());
             }
         }
 
-        private static void _Main(string[] args)
+        private static void _Main()
         {
-            ParseArgs(args);
-
             // Get and compile the user's code
             CompileUserCode();
 
@@ -937,36 +959,16 @@ using FragSharpFramework;
 
         static void CompileUserCode()
         {
-            //// Get all the relevant source files
-            //var files =    Directory.GetFiles(BuildPaths.ProjectDir, "*.cs", SearchOption.AllDirectories).ToList();
-            //files.AddRange(Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories).ToList());
-
-            //// Get all the syntax trees from the source files
-            //List<SyntaxTree> Trees = new List<SyntaxTree>();
-            //foreach (var file in files)
-            //{
-            //    Trees.Add(SyntaxTree.ParseFile(file));
-            //}
-
-            //Nodes = new List<SyntaxNode>();
-            //foreach (var tree in Trees)
-            //{
-            //    Nodes.AddRange(tree.GetRoot().DescendantNodes());
-            //}
-
-            //// Compile all the sources together
-            //SourceCompilation = Compilation.Create("MyCompilation",
-            //                                 syntaxTrees: Trees,
-            //                                 references: new List<MetadataReference>() { MetadataReference.CreateAssemblyReference(typeof(object).Assembly.FullName) });
-
             DocumentId id;
+
             var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, configuration: BuildPaths.Configuration);
-            //var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath, configuration: "Release");
-            //var proj = Solution.LoadStandAloneProject(BuildPaths.ProjectPath);
+
             foreach (var pre in proj.ParseOptions.PreprocessorSymbolNames)
                 Console.WriteLine(pre);
+
             foreach (var file in Directory.GetFiles(BuildPaths.FrameworkDir, "*.cs", SearchOption.AllDirectories))
                 proj = proj.AddDocument(file, out id);
+
             SourceCompilation = (Compilation)proj.GetCompilation();
 
             Nodes = new List<SyntaxNode>();
