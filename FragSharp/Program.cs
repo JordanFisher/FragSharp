@@ -321,6 +321,8 @@ namespace FragSharp
 
         public static string SpecializationVarSuffix(Dictionary<Symbol, string> specialization)
         {
+            if (specialization == null) return "";
+
             string suffix = "";
             foreach (var variable in specialization)
             {

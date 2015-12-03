@@ -166,14 +166,16 @@ namespace FragSharp
             // If there are no specializations (count == 1) then we only need a single Effect.
             if (Specializations.Count == 1)
             {
-                WriteLine("public static Effect CompiledEffect;");
+                WriteLine("private static Effect CompiledEffect;");
+                WriteParameterDeclerations();
             }
             else
             {
                 // Otherwise we need an Effect for each specialization.
                 foreach (var specialization in Specializations)
                 {
-                    WriteLine("public static Effect CompiledEffect{0};", ShaderClass.SpecializationVarSuffix(specialization));
+                    WriteLine("private static Effect CompiledEffect{0};", ShaderClass.SpecializationVarSuffix(specialization));
+                    WriteParameterDeclerations(specialization);
                 }
             }
 
@@ -199,9 +201,29 @@ namespace FragSharp
             WriteLine("}");    
         }
 
+        void WriteParameterDeclerations(Dictionary<Symbol, string> specialization = null)
+        {
+            string suffix = ShaderClass.SpecializationVarSuffix(specialization);
+
+            // Declare the parameters for the effect.
+            foreach (var param in Params)
+            {
+                if (param.MappedType == "shader")
+                {
+                    WriteLine($"private static EffectParameter param{suffix}_{param.MappedName}_Texture;");
+                    WriteLine($"private static EffectParameter param{suffix}_{param.MappedName}_{Sampler.SizeSuffix};");
+                    WriteLine($"private static EffectParameter param{suffix}_{param.MappedName}_{Sampler.DxDySuffix};");
+                }
+                else
+                {
+                    WriteLine($"private static EffectParameter param{suffix}_{param.MappedName};");
+                }
+            }
+        }
+
         void WriteBoilerplateInitFunc(NamedTypeSymbol Symbol, List<Dictionary<Symbol, string>> Specializations)
         {
-            BeginLine("public static void Init()");
+            WriteLine("public static void Init()");
             WriteLine("{");
             var PrevIndent = Indent();
 
@@ -209,28 +231,41 @@ namespace FragSharp
             {
                 string filename = ShaderClass.SpecializationFileName(Symbol, specialization);
                 string suffix = ShaderClass.SpecializationVarSuffix(specialization);
+                string var_name, param_name;
 
                 // Load the effect file.
-                WriteLine("{0}{0}{0}{1}.{2}.CompiledEffect{3} = Content.Load<Effect>(\"FragSharpShaders/{4}\");", Tab, Symbol.ContainingNamespace, Symbol.Name, suffix, filename);
+                WriteLine($"CompiledEffect{suffix} = FragSharp.Content.Load<Effect>(\"FragSharpShaders/{filename}\");");
 
                 // Grab the parameters for the effect.
                 foreach (var param in Params)
                 {
                     if (param.MappedType == "shader")
                     {
-                        WriteLine("var param{3}_{0}_Texture = CompiledEffect{3}.Parameters[\"{0}_Texture\"];", param.MappedName, param.Name, suffix);
-                        WriteLine("var param{3}_{0}_{2} = CompiledEffect{3}.Parameters[\"{0}_{2}\"];", param.MappedName, param.Name, Sampler.SizeSuffix, suffix);
-                        WriteLine("var param{3}_{0}_{2} = CompiledEffect{3}.Parameters[\"{0}_{2}\"];", param.MappedName, param.Name, Sampler.DxDySuffix, suffix);
+                        var_name = $"{param.MappedName}_Texture";
+                        WriteParameterAssignment(suffix, var_name);
+
+                        var_name = $"{param.MappedName}_{Sampler.SizeSuffix}";
+                        WriteParameterAssignment(suffix, var_name);
+
+                        var_name = $"{param.MappedName}_{Sampler.DxDySuffix}";
+                        WriteParameterAssignment(suffix, var_name);
                     }
                     else
                     {
-                        WriteLine("var param{3}_{0} = CompiledEffect{3}.Parameters[\"{0}\"];", param.MappedName, param.Name, suffix);
+                        var_name = param.MappedName;
+                        WriteParameterAssignment(suffix, var_name);
                     }
                 }
             }
 
             RestoreIndent(PrevIndent);
             WriteLine("}");
+        }
+
+        void WriteParameterAssignment(string suffix, string var_name)
+        {
+            string param_name = $"param{suffix}_{var_name}";
+            WriteLine($"{param_name} = CompiledEffect{suffix}.Parameters[\"{var_name}\"];");
         }
 
         void WriteBoilerplateSignature(string FunctionName, string ExtraParams = null)
@@ -331,10 +366,8 @@ namespace FragSharp
                     RestoreIndent(PrevIndent2);
                     WriteLine("}");
                 }
-                WriteLine();
 
-                WriteLine("else if (CompiledEffect == null) throw new Exception(\"Parameters do not match any specified specialization.\");");
-                WriteLine();
+                WriteLine("else throw new Exception(\"Parameters do not match any specified specialization.\");");
             }
             else
             {
@@ -365,7 +398,7 @@ namespace FragSharp
                 else
                 {
                     param_name = $"param{Suffix}_{param.MappedName}";
-                    WriteLine("if (param_{0} != null) param_{0}.SetValue(FragSharpMarshal.Marshal({1}));", param.MappedName, param.Name);
+                    WriteLine($"if ({param_name} != null) {param_name}.SetValue(FragSharpMarshal.Marshal({param.Name}));");
                 }
             }
 
